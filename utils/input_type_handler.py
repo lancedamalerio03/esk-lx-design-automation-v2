@@ -1,0 +1,279 @@
+import streamlit as st
+from io import BytesIO
+from .google_docs_fetcher import get_prompt_content
+from .google_drive_manager import create_google_doc
+from .google_sheets_logger import log_session_data
+from AI.generate_ai_response import generate_ai_response
+
+def render_research_input_options(topic, session_folder_id, session_id, step_name="research", prompt_type='topic_researcher', context_data=None):
+    """
+    Render research input options UI and handle the selected method
+    Args:
+        context_data: Optional dict of context data for AI generation
+    Returns: (success, research_content, method_used, doc_id)
+    """
+    # Styling for the research options
+    st.markdown(
+        """
+        <style>
+        .seg-card {
+        background: linear-gradient(135deg, #2ba7a0 0%, #3ac0a2 100%);
+        padding: 18px 20px; border-radius: 20px; margin-top: 8px; margin-bottom: 12px;
+        }
+        .seg-inner {
+        background: rgba(255,255,255,0.10);
+        border-radius: 14px; padding: 10px 12px;
+        }
+        .seg-inner div[data-baseweb="radio"] > div { gap: 14px !important; flex-wrap: nowrap; }
+        .seg-inner label {
+        border-radius: 999px !important; padding: 6px 12px !important;
+        background: rgba(255,255,255,0.06); transition: background .15s ease;
+        }
+        .seg-inner label:hover { background: rgba(255,255,255,0.12); }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    st.markdown("### ✍️ How would you like to provide the research?")
+    st.markdown('<div class="seg-card"><div class="seg-inner">', unsafe_allow_html=True)
+    mode = st.radio(
+        "Choose a method:",
+        options=["Paste text", "Upload a PDF", "Ask AI to help"],
+        horizontal=True,
+        help="Paste notes, upload a PDF, or let AI generate a research brief.",
+        label_visibility="visible",
+        key=f"research_method_{step_name}"
+    )
+    st.markdown('</div></div>', unsafe_allow_html=True)
+    
+    # Handle different research modes
+    if mode == "Paste text":
+        return handle_paste_input(topic, session_folder_id, session_id, step_name)
+    elif mode == "Upload a PDF":
+        return handle_pdf_upload(topic, session_folder_id, session_id, step_name)
+    elif mode == "Ask AI to help":
+        return handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt_type, context_data)
+    
+    return False, None, None, None
+
+def handle_paste_input(topic, session_folder_id, session_id, step_name):
+    """Handle pasted text input"""
+    pasted = st.text_area(
+        "Paste your research here:",
+        height=300,
+        placeholder="Drop in your notes, article excerpts, or a brief you already made…",
+        key=f"paste_input_{step_name}"
+    )
+    
+    if st.button("💾 Save Research & Continue", use_container_width=True, key=f"save_paste_{step_name}"):
+        content = (pasted or "").strip()
+        if not content:
+            st.error("Please paste some research text first.")
+            return False, None, None, None
+        
+        # Create Google Doc with the research
+        doc_title = f"{step_name.title()} Research - {topic}"
+        doc_content = f"# {step_name.title()} Research: {topic}\n\n## Research Method: Pasted Content\n\n{content}"
+        
+        doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
+        
+        # Log this step
+        log_session_data(
+            session_id,
+            f'{step_name}_research_completed',
+            {
+                'topic': topic,
+                'method': 'pasted_content',
+                'doc_id': doc_id,
+                'content_length': len(content)
+            }
+        )
+        
+        st.success("✅ Research saved!")
+        return True, content, 'pasted_content', doc_id
+    
+    return False, None, None, None
+
+def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
+    """Handle PDF file upload"""
+    uploaded_file = st.file_uploader(
+        "Upload a research PDF:", 
+        type=["pdf"],
+        key=f"pdf_upload_{step_name}"
+    )
+    
+    if uploaded_file is not None:
+        st.success(f"📎 Uploaded: {uploaded_file.name}")
+        
+        if st.button("📄 Extract & Save PDF Content", use_container_width=True, key=f"extract_pdf_{step_name}"):
+            extracted_text = extract_pdf_text(uploaded_file)
+            
+            if not extracted_text:
+                st.error("❌ Could not extract any text from this PDF. It may be image-only or protected.")
+                return False, None, None, None
+            
+            # Format the research content
+            pdf_research = (
+                f"# PDF Research: {uploaded_file.name}\n\n"
+                f"**Document Information:**\n"
+                f"- Filename: {uploaded_file.name}\n"
+                f"- Characters: {len(extracted_text):,}\n"
+                f"- Words: {len(extracted_text.split()):,}\n\n"
+                f"**Extracted Content:**\n{extracted_text}\n"
+            )
+            
+            # Create Google Doc with the research
+            doc_title = f"{step_name.title()} Research - {topic} (PDF)"
+            doc_id = create_google_doc(doc_title, pdf_research, session_folder_id)
+            
+            # Log this step
+            log_session_data(
+                session_id,
+                f'{step_name}_research_completed',
+                {
+                    'topic': topic,
+                    'method': 'pdf_upload',
+                    'filename': uploaded_file.name,
+                    'doc_id': doc_id,
+                    'content_length': len(extracted_text)
+                }
+            )
+            
+            st.success("✅ PDF research processed and saved!")
+            return True, pdf_research, f'pdf_upload:{uploaded_file.name}', doc_id
+    
+    return False, None, None, None
+
+def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt_type='topic_researcher', context_data=None):
+    """Handle AI-generated research"""
+    st.markdown("Let AI prepare a concise research brief and key findings for your topic.")
+    
+    if st.button("🤖 Generate AI Research", use_container_width=True, key=f"ai_generate_{step_name}"):
+        with st.spinner("🧠 Generating research brief…"):
+            try:
+                # Get the meta prompt and module prompt from Google Docs
+                from utils.google_docs_fetcher import get_prompt_content
+                meta_prompt = get_prompt_content('meta_prompt')
+                module_prompt = get_prompt_content(prompt_type)
+                
+                if not meta_prompt or not module_prompt:
+                    st.error("Could not retrieve AI prompts. Please check your Google Docs access.")
+                    return False, None, None, None
+                
+                # Combine meta prompt with module prompt
+                combined_prompt = f"{meta_prompt}\n\n{module_prompt}"
+                
+                # Generate AI response with context data if provided
+                if context_data:
+                    research = generate_ai_response(combined_prompt, context_data)
+                else:
+                    research = generate_ai_response(combined_prompt, {'topic': topic})
+                
+                if research:
+                    # Create Google Doc with the research
+                    doc_title = f"{step_name.title()} Research - {topic} (AI Generated)"
+                    doc_content = f"# AI {step_name.title()} Research: {topic}\n\n## Research Method: AI Generated\n\n{research}"
+                    
+                    doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
+                    
+                    # Log this step
+                    log_session_data(
+                        session_id,
+                        f'{step_name}_research_completed',
+                        {
+                            'topic': topic,
+                            'method': 'ai_generated',
+                            'prompt_type': prompt_type,
+                            'doc_id': doc_id,
+                            'content_length': len(research)
+                        }
+                    )
+                    
+                    st.success("✅ AI research generated and saved!")
+                    return True, research, f'ai_generated:{prompt_type}', doc_id
+                else:
+                    st.error("Failed to generate AI research. Please try again.")
+                    return False, None, None, None
+                    
+            except Exception as e:
+                st.error(f"Error generating AI research: {str(e)}")
+                return False, None, None, None
+    
+    return False, None, None, None
+
+def extract_pdf_text(uploaded_file):
+    """Extract text from uploaded PDF file"""
+    extracted_text = ""
+    
+    try:
+        import pdfplumber
+        uploaded_file.seek(0)
+        buffer = BytesIO(uploaded_file.read())
+        
+        parts = []
+        with pdfplumber.open(buffer) as pdf:
+            total_pages = len(pdf.pages)
+            st.info(f"📊 Processing {total_pages} page(s)…")
+            
+            for i, page in enumerate(pdf.pages, start=1):
+                st.progress(i / max(total_pages, 1), text=f"Processing page {i}/{total_pages}")
+                text = (page.extract_text() or "").strip()
+                if text:
+                    parts.append(text)
+        
+        extracted_text = "\n\n".join(parts).strip()
+        
+    except Exception as e:
+        st.warning(f"pdfplumber error: {e}")
+    
+    # Fallback to PyPDF2 if pdfplumber fails
+    if not extracted_text:
+        try:
+            import PyPDF2
+            st.info("Trying PyPDF2 fallback…")
+            uploaded_file.seek(0)
+            reader = PyPDF2.PdfReader(uploaded_file)
+            
+            parts = []
+            for i, page in enumerate(reader.pages, start=1):
+                st.progress(i / len(reader.pages), text=f"Processing page {i}/{len(reader.pages)}")
+                text = (page.extract_text() or "").strip()
+                if text:
+                    parts.append(text)
+            
+            extracted_text = "\n\n".join(parts).strip()
+            
+        except Exception as e:
+            st.error(f"PDF extraction failed: {e}")
+    
+    return extracted_text
+
+def load_mock_research(mock_type, topic, session_folder_id, session_id, step_name):
+    """Load mock research data for testing"""
+    from .google_docs_fetcher import get_mock_content
+    
+    mock_research = get_mock_content(mock_type)
+    if mock_research:
+        # Create Google Doc with mock research
+        doc_title = f"{step_name.title()} Research - {topic} (Mock Data)"
+        doc_content = f"# Mock {step_name.title()} Research: {topic}\n\n## Research Method: Mock Data\n\n{mock_research}"
+        
+        doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
+        
+        # Log this step
+        log_session_data(
+            session_id,
+            f'{step_name}_research_completed',
+            {
+                'topic': topic,
+                'method': 'mock_data',
+                'mock_type': mock_type,
+                'doc_id': doc_id,
+                'content_length': len(mock_research)
+            }
+        )
+        
+        return True, mock_research, f'mock_data:{mock_type}', doc_id
+    
+    return False, None, None, None

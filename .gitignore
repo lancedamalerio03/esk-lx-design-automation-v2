@@ -1,0 +1,118 @@
+# Environment and Configuration Files
+.env
+.env.local
+.env.production
+.streamlit/secrets.toml
+
+# API Keys and Credentials
+*.json
+!slide-prompts-key.json  # Keep your prompt config file
+credentials.json
+token.json
+service_account.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# Temporary Files
+*.tmp
+*.temp
+.tmp/
+temp/
+
+# Images and Generated Content
+images/*.png
+images/*.jpg
+images/*.jpeg
+images/*.gif
+images/*.svg
+!images/.gitkeep  # Keep the images folder but ignore contents
+
+# Logs
+*.log
+logs/
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Uploaded Files (temporary)
+uploads/
+temp_files/
+
+# Google Drive Downloads
+downloads/
+
+# Backup files
+*.bak
+*.backup
+
+service_account.json
+*.json

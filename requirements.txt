@@ -1,0 +1,38 @@
+# Streamlit and Web Framework
+streamlit
+
+# OpenAI API
+openai
+
+# Google APIs - UPDATED for OAuth
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+gspread
+
+# Data Processing
+pandas
+numpy
+
+# Environment and Configuration
+python-dotenv
+
+# File Processing - PDF Support
+PyPDF2
+pdfplumber
+python-docx
+
+# HTTP Requests
+requests
+
+# Additional utilities
+Pillow
+matplotlib
+seaborn
+
+# Track Token Use
+tiktoken
+
+# Date/Time utilities
+python-dateutil
