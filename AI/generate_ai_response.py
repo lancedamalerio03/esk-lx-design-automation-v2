@@ -163,6 +163,14 @@ def generate_ai_response(prompt, context, step_name="unknown") -> str:
                     cost_usd=tracker.calculate_cost(response.usage.prompt_tokens, response.usage.completion_tokens, model),
                     content_length=len(ai_response) if ai_response else 0
                 )
+                
+                # Also update session logs with current step progress
+                try:
+                    from main import log_session_status_update
+                    log_session_status_update()
+                except Exception as e:
+                    print(f"Error updating session status: {e}")
+                    
             except Exception as e:
                 print(f"Error logging detailed data: {e}")
         

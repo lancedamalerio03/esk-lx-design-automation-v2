@@ -225,7 +225,7 @@ def log_detailed_data(session_id, doc_id, module, step, content, ai_model, input
             doc_id or "",
             module,
             step,
-            content[:500] + "..." if len(content) > 500 else content,  # Truncate long content
+            content,  # Store full content (no truncation)
             ai_model,
             input_tokens,
             output_tokens,
