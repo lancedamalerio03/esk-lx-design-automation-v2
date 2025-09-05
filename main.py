@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from utils.google_auth import authenticate_user
 from utils.google_drive_manager import create_session_folder, get_folder_url
-from utils.google_sheets_logger import log_session_data, create_session_log_sheet
+from utils.google_sheets_logger import log_session_data, create_session_log_sheet, log_session_update, get_user_email
 from modules.topic_research import topic_research_module
 from modules.client_conversation import client_conversation_module
 from modules.model_deliverable import model_deliverable_module
@@ -85,7 +85,37 @@ def render_sidebar():
                 use_container_width=True
             ):
                 st.session_state.current_step = i
+                # Log step change
+                log_session_status_update()
                 st.rerun()
+        
+        st.markdown("---")
+        
+        # Token usage tracking (always visible)
+        st.markdown("### 📊 Token Usage")
+        try:
+            from AI.generate_ai_response import get_session_token_summary
+            token_summary = get_session_token_summary()
+            
+            if token_summary and token_summary.get('steps_completed', 0) > 0:
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Total Tokens", f"{token_summary['total_tokens']:,}")
+                with col2:
+                    st.metric("Total Cost", f"${token_summary['total_cost_usd']:.4f}")
+                
+                with st.expander("📈 Token Details"):
+                    st.write(f"**Input Tokens:** {token_summary['input_tokens']:,}")
+                    st.write(f"**Output Tokens:** {token_summary['output_tokens']:,}")
+                    st.write(f"**Steps Completed:** {token_summary['steps_completed']}")
+                    st.write(f"**Avg Tokens/Step:** {token_summary['avg_tokens_per_step']:.0f}")
+                    st.write(f"**Avg Cost/Step:** ${token_summary['avg_cost_per_step']:.4f}")
+            else:
+                st.info("No AI calls yet this session")
+        except ImportError as e:
+            st.warning(f"Token tracking not available: {e}")
+        except Exception as e:
+            st.warning(f"Token tracking error: {e}")
         
         st.markdown("---")
         
@@ -103,8 +133,40 @@ def render_sidebar():
                         del st.session_state[key]
                 st.rerun()
             
-            if st.button("=� View Session Data", use_container_width=True):
+            if st.button("🔍 View Session Data", use_container_width=True):
                 st.session_state.show_debug = not st.session_state.get('show_debug', False)
+            
+            # Simple debug info (always visible when dev mode is on)
+            st.markdown("#### Debug Info")
+            st.write(f"Session ID: {st.session_state.get('session_id', 'None')}")
+            st.write(f"User Email: {get_user_email()}")
+            
+            try:
+                from keys.config import lx_design_logger_sheet
+                st.write(f"Sheet ID: {lx_design_logger_sheet}")
+            except Exception as e:
+                st.write(f"Sheet ID Error: {e}")
+                
+            # Very simple test
+            if st.button("🧪 Simple Test"):
+                st.success("Button clicked successfully!")
+                # Try one simple log call
+                try:
+                    result = log_session_update(
+                        session_id="SIMPLE_TEST",
+                        user_path="test_user", 
+                        current_step="test",
+                        status="button_test",
+                        api_calls=1,
+                        total_tokens=0
+                    )
+                    st.write(f"Log result: {result}")
+                    if result:
+                        st.success("✅ Logging function returned True - check your sheet!")
+                    else:
+                        st.error("❌ Logging function returned False")
+                except Exception as e:
+                    st.error(f"Logging error: {e}")
 
 def render_main_content():
     """Render the main content based on current step"""
@@ -135,6 +197,47 @@ def log_step_completion(step_name, data):
             data,
             st.session_state.session_log_sheet_id
         )
+
+def log_session_status_update():
+    """Log session status updates to Session_Logs"""
+    try:
+        from AI.generate_ai_response import get_session_token_summary
+        from utils.google_sheets_logger import get_session_logs
+        
+        token_summary = get_session_token_summary()
+        
+        # Get count of all detailed logs (including non-AI) for this session
+        try:
+            logs = get_session_logs(st.session_state.session_id)
+            total_actions = len(logs.get('detailed_logs', []))
+        except:
+            total_actions = token_summary.get('steps_completed', 0)
+        
+        user_path = get_user_email()
+        current_step = str(st.session_state.current_step)
+        
+        # Determine status based on current step and completion
+        status = "in_progress"
+        completed_at = None
+        
+        # Check if workflow is completed (step 4 and PRD is done)
+        if st.session_state.current_step == 4:
+            prd_data = st.session_state.session_data.get('prd_data', {})
+            if prd_data.get('current_substep') == 'completed':
+                status = "completed"
+                completed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        log_session_update(
+            session_id=st.session_state.session_id,
+            user_path=user_path,
+            current_step=current_step,
+            status=status,
+            api_calls=total_actions,  # Now includes all actions, not just AI
+            total_tokens=token_summary.get('total_tokens', 0),
+            completed_at=completed_at
+        )
+    except Exception as e:
+        print(f"Error logging session update: {e}")
 
 if __name__ == "__main__":
     main()

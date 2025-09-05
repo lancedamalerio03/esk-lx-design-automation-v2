@@ -78,7 +78,7 @@ def handle_paste_input(topic, session_folder_id, session_id, step_name):
         
         doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
         
-        # Log this step
+        # Log this step to both legacy and detailed logs
         log_session_data(
             session_id,
             f'{step_name}_research_completed',
@@ -89,6 +89,37 @@ def handle_paste_input(topic, session_folder_id, session_id, step_name):
                 'content_length': len(content)
             }
         )
+        
+        # Log detailed data for pasted content
+        try:
+            from utils.google_sheets_logger import log_detailed_data
+            
+            # Determine module from step_name
+            module = "unknown"
+            if "topic" in step_name.lower():
+                module = "topic_research"
+            elif "client" in step_name.lower():
+                module = "client_conversation"
+            elif "model" in step_name.lower():
+                module = "model_deliverable"
+            elif "prd" in step_name.lower():
+                module = "prd"
+            
+            log_detailed_data(
+                session_id=session_id,
+                doc_id=doc_id,
+                module=module,
+                step=step_name,
+                content=content,
+                ai_model="plaintext",
+                input_tokens=0,
+                output_tokens=0,
+                tokens_used=0,
+                cost_usd=0.0,
+                content_length=len(content)
+            )
+        except Exception as e:
+            print(f"Error logging pasted content details: {e}")
         
         st.success("✅ Research saved!")
         return True, content, 'pasted_content', doc_id
@@ -127,7 +158,7 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
             doc_title = f"{step_name.title()} Research - {topic} (PDF)"
             doc_id = create_google_doc(doc_title, pdf_research, session_folder_id)
             
-            # Log this step
+            # Log this step to both legacy and detailed logs
             log_session_data(
                 session_id,
                 f'{step_name}_research_completed',
@@ -139,6 +170,37 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
                     'content_length': len(extracted_text)
                 }
             )
+            
+            # Log detailed data for PDF content
+            try:
+                from utils.google_sheets_logger import log_detailed_data
+                
+                # Determine module from step_name
+                module = "unknown"
+                if "topic" in step_name.lower():
+                    module = "topic_research"
+                elif "client" in step_name.lower():
+                    module = "client_conversation"
+                elif "model" in step_name.lower():
+                    module = "model_deliverable"
+                elif "prd" in step_name.lower():
+                    module = "prd"
+                
+                log_detailed_data(
+                    session_id=session_id,
+                    doc_id=doc_id,
+                    module=module,
+                    step=step_name,
+                    content=pdf_research,
+                    ai_model="pdf",
+                    input_tokens=0,
+                    output_tokens=0,
+                    tokens_used=0,
+                    cost_usd=0.0,
+                    content_length=len(extracted_text)
+                )
+            except Exception as e:
+                print(f"Error logging PDF content details: {e}")
             
             st.success("✅ PDF research processed and saved!")
             return True, pdf_research, f'pdf_upload:{uploaded_file.name}', doc_id
@@ -166,9 +228,9 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                 
                 # Generate AI response with context data if provided
                 if context_data:
-                    research = generate_ai_response(combined_prompt, context_data)
+                    research = generate_ai_response(combined_prompt, context_data, step_name)
                 else:
-                    research = generate_ai_response(combined_prompt, {'topic': topic})
+                    research = generate_ai_response(combined_prompt, {'topic': topic}, step_name)
                 
                 if research:
                     # Create Google Doc with the research
@@ -176,6 +238,9 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                     doc_content = f"# AI {step_name.title()} Research: {topic}\n\n## Research Method: AI Generated\n\n{research}"
                     
                     doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
+                    
+                    # Store doc_id for logging
+                    st.session_state.current_doc_id = doc_id
                     
                     # Log this step
                     log_session_data(
@@ -261,7 +326,7 @@ def load_mock_research(mock_type, topic, session_folder_id, session_id, step_nam
         
         doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
         
-        # Log this step
+        # Log this step to both legacy and detailed logs
         log_session_data(
             session_id,
             f'{step_name}_research_completed',
@@ -273,6 +338,37 @@ def load_mock_research(mock_type, topic, session_folder_id, session_id, step_nam
                 'content_length': len(mock_research)
             }
         )
+        
+        # Log detailed data for mock content
+        try:
+            from utils.google_sheets_logger import log_detailed_data
+            
+            # Determine module from step_name
+            module = "unknown"
+            if "topic" in step_name.lower():
+                module = "topic_research"
+            elif "client" in step_name.lower():
+                module = "client_conversation"
+            elif "model" in step_name.lower():
+                module = "model_deliverable"
+            elif "prd" in step_name.lower():
+                module = "prd"
+            
+            log_detailed_data(
+                session_id=session_id,
+                doc_id=doc_id,
+                module=module,
+                step=step_name,
+                content=mock_research,
+                ai_model="mock_data",
+                input_tokens=0,
+                output_tokens=0,
+                tokens_used=0,
+                cost_usd=0.0,
+                content_length=len(mock_research)
+            )
+        except Exception as e:
+            print(f"Error logging mock content details: {e}")
         
         return True, mock_research, f'mock_data:{mock_type}', doc_id
     

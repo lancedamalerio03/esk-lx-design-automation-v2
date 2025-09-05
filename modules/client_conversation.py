@@ -79,13 +79,13 @@ def step_client_transcript(client_data):
     }
     
     # Use enhanced input handler with context
-    success, transcript_content, method_used, doc_id = render_research_input_options_with_context(
+    success, transcript_content, method_used, doc_id = render_research_input_options(
         topic,
         st.session_state.session_folder_id,
         st.session_state.session_id,
         'client_transcript',
         'client_transcript',  # prompt type for AI
-        context_data
+        context_data=context_data
     )
     
     if success:
@@ -165,13 +165,13 @@ def step_client_info(client_data):
     }
     
     # Use the centralized input handler with enhanced context
-    success, info_content, method_used, doc_id = render_research_input_options_with_context(
+    success, info_content, method_used, doc_id = render_research_input_options(
         topic,
         st.session_state.session_folder_id,
         st.session_state.session_id,
         'client_info',
         'client_information',  # prompt type for AI
-        context_data
+        context_data=context_data
     )
     
     if success:
@@ -196,127 +196,3 @@ def step_client_info(client_data):
             st.session_state.current_step = 1
             st.rerun()
 
-def render_research_input_options_with_context(topic, session_folder_id, session_id, step_name, prompt_type, context_data):
-    """Enhanced version of input handler that passes context data for AI generation"""
-    
-    # Styling for the research options
-    st.markdown(
-        """
-        <style>
-        .seg-card {
-        background: linear-gradient(135deg, #2ba7a0 0%, #3ac0a2 100%);
-        padding: 18px 20px; border-radius: 20px; margin-top: 8px; margin-bottom: 12px;
-        }
-        .seg-inner {
-        background: rgba(255,255,255,0.10);
-        border-radius: 14px; padding: 10px 12px;
-        }
-        .seg-inner div[data-baseweb="radio"] > div { gap: 14px !important; flex-wrap: nowrap; }
-        .seg-inner label {
-        border-radius: 999px !important; padding: 6px 12px !important;
-        background: rgba(255,255,255,0.06); transition: background .15s ease;
-        }
-        .seg-inner label:hover { background: rgba(255,255,255,0.12); }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    
-    st.markdown("### ✍️ How would you like to provide the information?")
-    st.markdown('<div class="seg-card"><div class="seg-inner">', unsafe_allow_html=True)
-    mode = st.radio(
-        "Choose a method:",
-        options=["Paste text", "Upload a PDF", "Ask AI to help"],
-        horizontal=True,
-        help="Paste notes, upload a PDF, or let AI generate structured information.",
-        label_visibility="visible",
-        key=f"info_method_{step_name}"
-    )
-    st.markdown('</div></div>', unsafe_allow_html=True)
-    
-    # Handle different input modes
-    if mode == "Paste text":
-        return handle_paste_input(topic, session_folder_id, session_id, step_name)
-    elif mode == "Upload a PDF":
-        return handle_pdf_upload(topic, session_folder_id, session_id, step_name)
-    elif mode == "Ask AI to help":
-        return handle_ai_generation_with_context(topic, session_folder_id, session_id, step_name, prompt_type, context_data)
-    
-    return False, None, None, None
-
-def handle_paste_input(topic, session_folder_id, session_id, step_name):
-    """Handle pasted text input"""
-    from utils.input_type_handler import handle_paste_input as base_handler
-    return base_handler(topic, session_folder_id, session_id, step_name)
-
-def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
-    """Handle PDF upload"""
-    from utils.input_type_handler import handle_pdf_upload as base_handler
-    return base_handler(topic, session_folder_id, session_id, step_name)
-
-def handle_ai_generation_with_context(topic, session_folder_id, session_id, step_name, prompt_type, context_data):
-    """Handle AI generation with enhanced context"""
-    if step_name == 'client_transcript':
-        description = "Let AI create a realistic client conversation based on your topic and research."
-        button_text = "🤖 Generate Client Transcript"
-        spinner_text = "🧠 Creating client conversation..."
-    else:
-        description = "Let AI analyze the client conversation and extract structured information."
-        button_text = "🤖 Generate Client Information" 
-        spinner_text = "🧠 Analyzing client conversation..."
-    
-    st.markdown(description)
-    
-    if st.button(button_text, use_container_width=True, key=f"ai_generate_{step_name}"):
-        with st.spinner(spinner_text):
-            try:
-                # Get the meta prompt and module prompt from Google Docs
-                from utils.google_docs_fetcher import get_prompt_content
-                meta_prompt = get_prompt_content('meta_prompt')
-                module_prompt = get_prompt_content(prompt_type)
-                
-                if not meta_prompt or not module_prompt:
-                    st.error("Could not retrieve AI prompts. Please check your Google Docs access.")
-                    return False, None, None, None
-                
-                # Combine meta prompt with module prompt
-                combined_prompt = f"{meta_prompt}\n\n{module_prompt}"
-                
-                # Generate AI response with context
-                from AI.generate_ai_response import generate_ai_response
-                client_info = generate_ai_response(combined_prompt, context_data)
-                
-                if client_info:
-                    # Create Google Doc with the information
-                    from utils.google_drive_manager import create_google_doc
-                    doc_title = f"{step_name.title().replace('_', ' ')} - {topic} (AI Generated)"
-                    doc_content = f"# AI {step_name.title().replace('_', ' ')}: {topic}\n\n## Method: AI Generated\n\n{client_info}"
-                    
-                    doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
-                    
-                    # Log this step
-                    from utils.google_sheets_logger import log_session_data
-                    log_session_data(
-                        session_id,
-                        f'{step_name}_completed',
-                        {
-                            'topic': topic,
-                            'method': 'ai_generated',
-                            'prompt_type': prompt_type,
-                            'doc_id': doc_id,
-                            'content_length': len(client_info),
-                            'context_provided': list(context_data.keys())
-                        }
-                    )
-                    
-                    st.success("✅ Client information generated and saved!")
-                    return True, client_info, f'ai_generated:{prompt_type}', doc_id
-                else:
-                    st.error("Failed to generate client information. Please try again.")
-                    return False, None, None, None
-                    
-            except Exception as e:
-                st.error(f"Error generating client information: {str(e)}")
-                return False, None, None, None
-    
-    return False, None, None, None
