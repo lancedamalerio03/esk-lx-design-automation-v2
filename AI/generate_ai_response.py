@@ -50,9 +50,9 @@ class TokenTracker:
     
     def calculate_cost(self, input_tokens, output_tokens, model_name="gpt-5"):
         """Calculate cost based on token usage and model pricing"""
-        # GPT pricing per 1M tokens (update these as needed)
+        # GPT pricing per 1M tokens (updated 2025-09-05)
         pricing = {
-            "gpt-5": {"input_per_1m": 10.00, "output_per_1m": 30.00},  # Estimated pricing
+            "gpt-5": {"input_per_1m": 1.25, "output_per_1m": 10.00},  # Actual GPT-5 pricing
             "gpt-4": {"input_per_1m": 30.00, "output_per_1m": 60.00},
             "gpt-3.5-turbo": {"input_per_1m": 0.50, "output_per_1m": 1.50}
         }
