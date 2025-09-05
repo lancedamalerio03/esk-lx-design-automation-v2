@@ -67,12 +67,13 @@ google_auth_js_origin = st.secrets["GOOGLE_AUTH_JS_ORIGIN"]
 
 # Redirect URIs and JS Origins
 redirect_uris = [
-    "https://esk-lx-design-generator.streamlit.app/"
-    
+    "https://esk-lx-design-generator.streamlit.app",
+    "http://localhost:8501",
+    "http://localhost:8502"
 ]
 js_origins = [
-    "https://esk-lx-design-generator.streamlit.app/"
-   
+    "https://esk-lx-design-generator.streamlit.app",
+    "http://localhost:8501",
+    "http://localhost:8502"
 ]
-
 
