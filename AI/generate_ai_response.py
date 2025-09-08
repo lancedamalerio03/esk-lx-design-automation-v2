@@ -4,7 +4,7 @@ import streamlit as st
 from datetime import datetime
 
 from keys.config import OPENAI_API_KEY
-# Google Docs fetcher not needed here - handled by caller
+
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -50,11 +50,18 @@ class TokenTracker:
     
     def calculate_cost(self, input_tokens, output_tokens, model_name="gpt-5"):
         """Calculate cost based on token usage and model pricing"""
-        # GPT pricing per 1M tokens (updated 2025-09-05)
+        # OpenAI pricing per 1M tokens (updated 2025-09-08)
         pricing = {
-            "gpt-5": {"input_per_1m": 1.25, "output_per_1m": 10.00},  # Actual GPT-5 pricing
-            "gpt-4": {"input_per_1m": 30.00, "output_per_1m": 60.00},
-            "gpt-3.5-turbo": {"input_per_1m": 0.50, "output_per_1m": 1.50}
+            "gpt-5":         {"input_per_1m": 1.25, "output_per_1m": 10.00},
+            "gpt-5-mini":    {"input_per_1m": 0.25, "output_per_1m": 2.00},
+            "gpt-5-nano":    {"input_per_1m": 0.05, "output_per_1m": 0.40},
+            "gpt-4.1":       {"input_per_1m": 2.00, "output_per_1m": 8.00},
+            "gpt-4.1-mini":  {"input_per_1m": 0.40, "output_per_1m": 1.60},
+            "gpt-4.1-nano":  {"input_per_1m": 0.10, "output_per_1m": 0.40},
+            "gpt-4o":        {"input_per_1m": 2.50, "output_per_1m": 10.00},
+            "gpt-4o-mini":   {"input_per_1m": 0.15, "output_per_1m": 0.60},
+            "o3":            {"input_per_1m": 2.00, "output_per_1m": 8.00},
+            "o3-mini":       {"input_per_1m": 0.40, "output_per_1m": 1.60}
         }
         
         model_pricing = pricing.get(model_name, pricing["gpt-5"])
@@ -100,33 +107,29 @@ def generate_ai_response(prompt, context, step_name="unknown") -> str:
         else:
             context_str = str(context)
         
-        # Combine prompt and context into a single system message
-        combined_prompt = f"{prompt}\n\n{context_str.strip()}"
+        # Get selected model from session state
+        model = st.session_state.get('selected_ai_model', 'gpt-5')
+        max_tokens = 15000
         
-        messages = [
-            {"role": "system", "content": combined_prompt}
-        ]
-        
-        # Use GPT-5 as specified
-        model = "gpt-5"
-        max_tokens = 8000
-        
+        # EXPERIMENTAL: Using responses API format
+        # NOTE: This is experimental - if it doesn't work, will revert back to chat.completions
         api_params = {
             "model": model,
-            "messages": messages,
-            "max_completion_tokens": max_tokens
+            "instructions": prompt,
+            "input": context_str,
+            "max_output_tokens": max_tokens
         }
         
-        response = client.chat.completions.create(**api_params)
-        ai_response = response.choices[0].message.content
+        response = client.responses.create(**api_params)
+        ai_response = response.output_text
         
         # Track token usage and log to Google Sheets
         if hasattr(response, 'usage') and response.usage:
             tracker = get_token_tracker()
             tracker.log_usage(
                 step_name=step_name,
-                input_tokens=response.usage.prompt_tokens,
-                output_tokens=response.usage.completion_tokens,
+                input_tokens=response.usage.input_tokens,  # Changed from prompt_tokens
+                output_tokens=response.usage.output_tokens,  # Changed from completion_tokens
                 content_length=len(ai_response) if ai_response else 0,
                 model_name=model
             )
@@ -157,10 +160,10 @@ def generate_ai_response(prompt, context, step_name="unknown") -> str:
                     step=step_name,
                     content=ai_response,
                     ai_model=model,
-                    input_tokens=response.usage.prompt_tokens,
-                    output_tokens=response.usage.completion_tokens,
-                    tokens_used=response.usage.prompt_tokens + response.usage.completion_tokens,
-                    cost_usd=tracker.calculate_cost(response.usage.prompt_tokens, response.usage.completion_tokens, model),
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                    tokens_used=response.usage.input_tokens + response.usage.output_tokens,
+                    cost_usd=tracker.calculate_cost(response.usage.input_tokens, response.usage.output_tokens, model),
                     content_length=len(ai_response) if ai_response else 0
                 )
                 

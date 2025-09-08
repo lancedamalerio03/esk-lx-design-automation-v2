@@ -35,13 +35,13 @@ def render_research_input_options(topic, session_folder_id, session_id, step_nam
         unsafe_allow_html=True,
     )
     
-    st.markdown("### ✍️ How would you like to provide the research?")
+    st.markdown("### ✍️ How would you like to provide the input?")
     st.markdown('<div class="seg-card"><div class="seg-inner">', unsafe_allow_html=True)
     mode = st.radio(
         "Choose a method:",
         options=["Paste text", "Upload a PDF", "Ask AI to help"],
         horizontal=True,
-        help="Paste notes, upload a PDF, or let AI generate a research brief.",
+        help="Paste notes, upload a PDF, or ask AI to generate the output for you.",
         label_visibility="visible",
         key=f"research_method_{step_name}"
     )
@@ -208,11 +208,24 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
     return False, None, None, None
 
 def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt_type='topic_researcher', context_data=None):
-    """Handle AI-generated research"""
-    st.markdown("Let AI prepare a concise research brief and key findings for your topic.")
+    """Handle AI-generated content"""
+    st.markdown("Let AI generate content for your request")
     
-    if st.button("🤖 Generate AI Research", use_container_width=True, key=f"ai_generate_{step_name}"):
-        with st.spinner("🧠 Generating research brief…"):
+    # Check if AI is currently processing for this step
+    ai_processing_key = f"ai_processing_{step_name}"
+    is_processing = st.session_state.get(ai_processing_key, False)
+    
+    # Show button only if not processing
+    if not is_processing:
+        if st.button("🤖 Generate with AI", use_container_width=True, key=f"ai_generate_{step_name}"):
+            # Set processing state to hide button
+            st.session_state[ai_processing_key] = True
+            st.rerun()
+    else:
+        # Show processing state instead of button
+        st.info("🧠 AI is generating content... Please wait.")
+        
+        with st.spinner("🧠 Generating content..."):
             try:
                 # Get the meta prompt and module prompt from Google Docs
                 from utils.google_docs_fetcher import get_prompt_content
@@ -255,13 +268,19 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                         }
                     )
                     
+                    # Clear processing state on success
+                    st.session_state[ai_processing_key] = False
                     st.success("✅ AI research generated and saved!")
                     return True, research, f'ai_generated:{prompt_type}', doc_id
                 else:
+                    # Clear processing state on failure
+                    st.session_state[ai_processing_key] = False
                     st.error("Failed to generate AI research. Please try again.")
                     return False, None, None, None
                     
             except Exception as e:
+                # Clear processing state on error
+                st.session_state[ai_processing_key] = False
                 st.error(f"Error generating AI research: {str(e)}")
                 return False, None, None, None
     

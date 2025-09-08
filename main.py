@@ -2,7 +2,7 @@ import streamlit as st
 import uuid
 from datetime import datetime
 from utils.google_auth import authenticate_user
-from utils.google_drive_manager import create_session_folder, get_folder_url
+from utils.google_drive_manager import create_session_folder, get_folder_url, get_document_url
 from utils.google_sheets_logger import log_session_data, create_session_log_sheet, log_session_update, get_user_email
 from modules.topic_research import topic_research_module
 from modules.client_conversation import client_conversation_module
@@ -49,6 +49,75 @@ def main():
     # Main content area
     render_main_content()
 
+def render_document_links():
+    """Render document links for created documents"""
+    st.markdown("### 📄 Generated Documents")
+    
+    session_data = st.session_state.get('session_data', {})
+    
+    # Topic Research documents
+    topic_data = session_data.get('topic_research_data', {})
+    if topic_data.get('research_doc_id'):
+        doc_url = get_document_url(topic_data['research_doc_id'])
+        st.markdown(f"📝 [Topic Research]({doc_url})")
+    
+    # Client Conversation documents
+    client_data = session_data.get('client_conversation_data', {})
+    if client_data.get('transcript_doc_id'):
+        doc_url = get_document_url(client_data['transcript_doc_id'])
+        st.markdown(f"🎤 [Client Transcript]({doc_url})")
+    if client_data.get('info_doc_id'):
+        doc_url = get_document_url(client_data['info_doc_id'])
+        st.markdown(f"ℹ️ [Client Information]({doc_url})")
+    
+    # Model Deliverable documents
+    model_data = session_data.get('model_deliverable_data', {})
+    if model_data.get('research_doc_id'):
+        doc_url = get_document_url(model_data['research_doc_id'])
+        st.markdown(f"🔬 [Model Research]({doc_url})")
+    if model_data.get('deliverable_doc_id'):
+        doc_url = get_document_url(model_data['deliverable_doc_id'])
+        st.markdown(f"📦 [Model Deliverable]({doc_url})")
+    
+    # PRD documents
+    prd_data = session_data.get('prd_data', {})
+    if prd_data.get('executive_summary_doc_id'):
+        doc_url = get_document_url(prd_data['executive_summary_doc_id'])
+        st.markdown(f"📊 [Executive Summary]({doc_url})")
+    if prd_data.get('problem_statement_doc_id'):
+        doc_url = get_document_url(prd_data['problem_statement_doc_id'])
+        st.markdown(f"❓ [Problem Statement]({doc_url})")
+    if prd_data.get('goals_and_success_doc_id'):
+        doc_url = get_document_url(prd_data['goals_and_success_doc_id'])
+        st.markdown(f"🎯 [Goals & Success]({doc_url})")
+    if prd_data.get('roles_and_responsibilities_doc_id'):
+        doc_url = get_document_url(prd_data['roles_and_responsibilities_doc_id'])
+        st.markdown(f"👥 [Roles & Responsibilities]({doc_url})")
+    if prd_data.get('constraints_and_assumptions_doc_id'):
+        doc_url = get_document_url(prd_data['constraints_and_assumptions_doc_id'])
+        st.markdown(f"⚠️ [Constraints & Assumptions]({doc_url})")
+    if prd_data.get('evaluation_criteria_doc_id'):
+        doc_url = get_document_url(prd_data['evaluation_criteria_doc_id'])
+        st.markdown(f"✅ [Evaluation Criteria]({doc_url})")
+    if prd_data.get('risk_and_mitigations_doc_id'):
+        doc_url = get_document_url(prd_data['risk_and_mitigations_doc_id'])
+        st.markdown(f"⚠️ [Risk & Mitigations]({doc_url})")
+    if prd_data.get('final_prd_doc_id'):
+        doc_url = get_document_url(prd_data['final_prd_doc_id'])
+        st.markdown(f"📋 [Final PRD]({doc_url})")
+    
+    # Show message if no documents yet
+    if not any([
+        topic_data.get('research_doc_id'),
+        client_data.get('transcript_doc_id'), client_data.get('info_doc_id'),
+        model_data.get('research_doc_id'), model_data.get('deliverable_doc_id'),
+        prd_data.get('executive_summary_doc_id'), prd_data.get('problem_statement_doc_id'),
+        prd_data.get('goals_and_success_doc_id'), prd_data.get('roles_and_responsibilities_doc_id'),
+        prd_data.get('constraints_and_assumptions_doc_id'), prd_data.get('evaluation_criteria_doc_id'),
+        prd_data.get('risk_and_mitigations_doc_id'), prd_data.get('final_prd_doc_id')
+    ]):
+        st.info("No documents created yet")
+
 def render_sidebar():
     """Render the sidebar with navigation and session info"""
     with st.sidebar:
@@ -64,6 +133,11 @@ def render_sidebar():
             st.markdown(f"📁 [Session Folder]({folder_url})")
         else:
             st.info("Creating session folder in OUTPUTS...")
+        
+        st.markdown("---")
+        
+        # Document Links
+        render_document_links()
         
         st.markdown("---")
         
@@ -88,6 +162,34 @@ def render_sidebar():
                 # Log step change
                 log_session_status_update()
                 st.rerun()
+        
+        st.markdown("---")
+        
+        # Model Selection
+        st.markdown("### 🤖 AI Model")
+        available_models = [
+            "gpt-5", "gpt-5-mini", "gpt-5-nano",
+            "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", 
+            "gpt-4o", "gpt-4o-mini",
+            "o3", "o3-mini"
+        ]
+        
+        # Get previous model to detect changes
+        previous_model = st.session_state.get('previous_ai_model', 'gpt-5')
+        
+        selected_model = st.selectbox(
+            "Choose AI Model:",
+            options=available_models,
+            index=0,  # Default to gpt-5
+            key="selected_ai_model",
+            disabled=False,  # Strict dropdown - no typing allowed
+            help="Select from available OpenAI models. Model applies to next AI generation."
+        )
+        
+        # Check if model changed and show notification
+        if selected_model != previous_model:
+            st.success(f"🔄 Model changed to **{selected_model}**")
+            st.session_state.previous_ai_model = selected_model
         
         st.markdown("---")
         
