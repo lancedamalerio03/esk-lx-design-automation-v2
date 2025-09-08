@@ -60,76 +60,101 @@ def render_research_input_options(topic, session_folder_id, session_id, step_nam
 def handle_paste_input(topic, session_folder_id, session_id, step_name):
     """Handle pasted text input"""
     pasted = st.text_area(
-        "Paste your research here:",
+        "Paste your input here:",
         height=300,
         placeholder="Drop in your notes, article excerpts, or a brief you already made…",
         key=f"paste_input_{step_name}"
     )
     
-    if st.button("💾 Save Research & Continue", use_container_width=True, key=f"save_paste_{step_name}"):
-        content = (pasted or "").strip()
-        if not content:
-            st.error("Please paste some research text first.")
-            return False, None, None, None
-        
-        # Create Google Doc with the research
-        doc_title = f"{step_name.title()} Research - {topic}"
-        doc_content = f"# {step_name.title()} Research: {topic}\n\n## Research Method: Pasted Content\n\n{content}"
-        
-        doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
-        
-        # Log this step to both legacy and detailed logs
-        log_session_data(
-            session_id,
-            f'{step_name}_research_completed',
-            {
-                'topic': topic,
-                'method': 'pasted_content',
-                'doc_id': doc_id,
-                'content_length': len(content)
-            }
-        )
-        
-        # Log detailed data for pasted content
-        try:
-            from utils.google_sheets_logger import log_detailed_data
+    # Check if paste is currently processing for this step
+    paste_processing_key = f"paste_processing_{step_name}"
+    is_processing = st.session_state.get(paste_processing_key, False)
+    
+    # Show button only if not processing
+    if not is_processing:
+        if st.button("💾 Save Input & Continue", use_container_width=True, key=f"save_paste_{step_name}"):
+            content = (pasted or "").strip()
+            if not content:
+                st.error("Please paste input text first.")
+                return False, None, None, None
             
-            # Determine module from step_name
-            module = "unknown"
-            if "topic" in step_name.lower():
-                module = "topic_research"
-            elif "client" in step_name.lower():
-                module = "client_conversation"
-            elif "model" in step_name.lower():
-                module = "model_deliverable"
-            elif "prd" in step_name.lower():
-                module = "prd"
-            
-            log_detailed_data(
-                session_id=session_id,
-                doc_id=doc_id,
-                module=module,
-                step=step_name,
-                content=content,
-                ai_model="plaintext",
-                input_tokens=0,
-                output_tokens=0,
-                tokens_used=0,
-                cost_usd=0.0,
-                content_length=len(content)
-            )
-        except Exception as e:
-            print(f"Error logging pasted content details: {e}")
+            # Set processing state to hide button
+            st.session_state[paste_processing_key] = True
+            st.rerun()
+    else:
+        # Show processing state instead of button
+        st.info("💾 Saving content... Please wait.")
         
-        st.success("✅ Research saved!")
-        return True, content, 'pasted_content', doc_id
+        with st.spinner("💾 Saving content..."):
+            try:
+                content = (pasted or "").strip()
+                
+                # Create Google Doc with the research
+                doc_title = f"{step_name.title()} Research - {topic}"
+                doc_content = f"# {step_name.title()} Research: {topic}\n\n## Research Method: Pasted Content\n\n{content}"
+                
+                doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
+                
+                # Log this step to both legacy and detailed logs
+                log_session_data(
+                    session_id,
+                    f'{step_name}_research_completed',
+                    {
+                        'topic': topic,
+                        'method': 'pasted_content',
+                        'doc_id': doc_id,
+                        'content_length': len(content)
+                    }
+                )
+                
+                # Log detailed data for pasted content
+                try:
+                    from utils.google_sheets_logger import log_detailed_data
+                    
+                    # Determine module from step_name
+                    module = "unknown"
+                    if "topic" in step_name.lower():
+                        module = "topic_research"
+                    elif "client" in step_name.lower():
+                        module = "client_conversation"
+                    elif "model" in step_name.lower():
+                        module = "model_deliverable"
+                    elif "prd" in step_name.lower():
+                        module = "prd"
+                    
+                    log_detailed_data(
+                        session_id=session_id,
+                        doc_id=doc_id,
+                        module=module,
+                        step=step_name,
+                        content=content,
+                        ai_model="plaintext",
+                        input_tokens=0,
+                        output_tokens=0,
+                        tokens_used=0,
+                        cost_usd=0.0,
+                        content_length=len(content)
+                    )
+                except Exception as e:
+                    print(f"Error logging pasted content details: {e}")
+                
+                # Clear processing state on success
+                st.session_state[paste_processing_key] = False
+                st.success("✅ Research saved!")
+                return True, content, 'pasted_content', doc_id
+                
+            except Exception as e:
+                # Clear processing state on error
+                st.session_state[paste_processing_key] = False
+                st.error(f"Error saving content: {str(e)}")
+                return False, None, None, None
     
     return False, None, None, None
 
 def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
     """Handle PDF file upload"""
     uploaded_file = st.file_uploader(
-        "Upload a research PDF:", 
+        "Upload a PDF with the content:", 
         type=["pdf"],
         key=f"pdf_upload_{step_name}"
     )
@@ -137,73 +162,98 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
     if uploaded_file is not None:
         st.success(f"📎 Uploaded: {uploaded_file.name}")
         
-        if st.button("📄 Extract & Save PDF Content", use_container_width=True, key=f"extract_pdf_{step_name}"):
-            extracted_text = extract_pdf_text(uploaded_file)
+        # Check if PDF is currently processing for this step
+        pdf_processing_key = f"pdf_processing_{step_name}"
+        is_processing = st.session_state.get(pdf_processing_key, False)
+        
+        # Show button only if not processing
+        if not is_processing:
+            if st.button("📄 Extract & Save PDF Content", use_container_width=True, key=f"extract_pdf_{step_name}"):
+                # Set processing state to hide button
+                st.session_state[pdf_processing_key] = True
+                st.rerun()
+        else:
+            # Show processing state instead of button
+            st.info("📄 Extracting PDF content... Please wait.")
             
-            if not extracted_text:
-                st.error("❌ Could not extract any text from this PDF. It may be image-only or protected.")
-                return False, None, None, None
-            
-            # Format the research content
-            pdf_research = (
-                f"# PDF Research: {uploaded_file.name}\n\n"
-                f"**Document Information:**\n"
-                f"- Filename: {uploaded_file.name}\n"
-                f"- Characters: {len(extracted_text):,}\n"
-                f"- Words: {len(extracted_text.split()):,}\n\n"
-                f"**Extracted Content:**\n{extracted_text}\n"
-            )
-            
-            # Create Google Doc with the research
-            doc_title = f"{step_name.title()} Research - {topic} (PDF)"
-            doc_id = create_google_doc(doc_title, pdf_research, session_folder_id)
-            
-            # Log this step to both legacy and detailed logs
-            log_session_data(
-                session_id,
-                f'{step_name}_research_completed',
-                {
-                    'topic': topic,
-                    'method': 'pdf_upload',
-                    'filename': uploaded_file.name,
-                    'doc_id': doc_id,
-                    'content_length': len(extracted_text)
-                }
-            )
-            
-            # Log detailed data for PDF content
-            try:
-                from utils.google_sheets_logger import log_detailed_data
-                
-                # Determine module from step_name
-                module = "unknown"
-                if "topic" in step_name.lower():
-                    module = "topic_research"
-                elif "client" in step_name.lower():
-                    module = "client_conversation"
-                elif "model" in step_name.lower():
-                    module = "model_deliverable"
-                elif "prd" in step_name.lower():
-                    module = "prd"
-                
-                log_detailed_data(
-                    session_id=session_id,
-                    doc_id=doc_id,
-                    module=module,
-                    step=step_name,
-                    content=pdf_research,
-                    ai_model="pdf",
-                    input_tokens=0,
-                    output_tokens=0,
-                    tokens_used=0,
-                    cost_usd=0.0,
-                    content_length=len(extracted_text)
-                )
-            except Exception as e:
-                print(f"Error logging PDF content details: {e}")
-            
-            st.success("✅ PDF research processed and saved!")
-            return True, pdf_research, f'pdf_upload:{uploaded_file.name}', doc_id
+            with st.spinner("📄 Extracting PDF content..."):
+                try:
+                    extracted_text = extract_pdf_text(uploaded_file)
+                    
+                    if not extracted_text:
+                        # Clear processing state on failure
+                        st.session_state[pdf_processing_key] = False
+                        st.error("❌ Could not extract any text from this PDF. It may be image-only or protected.")
+                        return False, None, None, None
+                    
+                    # Format the research content
+                    pdf_research = (
+                        f"# PDF Research: {uploaded_file.name}\n\n"
+                        f"**Document Information:**\n"
+                        f"- Filename: {uploaded_file.name}\n"
+                        f"- Characters: {len(extracted_text):,}\n"
+                        f"- Words: {len(extracted_text.split()):,}\n\n"
+                        f"**Extracted Content:**\n{extracted_text}\n"
+                    )
+                    
+                    # Create Google Doc with the research
+                    doc_title = f"{step_name.title()} Research - {topic} (PDF)"
+                    doc_id = create_google_doc(doc_title, pdf_research, session_folder_id)
+                    
+                    # Log this step to both legacy and detailed logs
+                    log_session_data(
+                        session_id,
+                        f'{step_name}_research_completed',
+                        {
+                            'topic': topic,
+                            'method': 'pdf_upload',
+                            'filename': uploaded_file.name,
+                            'doc_id': doc_id,
+                            'content_length': len(extracted_text)
+                        }
+                    )
+                    
+                    # Log detailed data for PDF content
+                    try:
+                        from utils.google_sheets_logger import log_detailed_data
+                        
+                        # Determine module from step_name
+                        module = "unknown"
+                        if "topic" in step_name.lower():
+                            module = "topic_research"
+                        elif "client" in step_name.lower():
+                            module = "client_conversation"
+                        elif "model" in step_name.lower():
+                            module = "model_deliverable"
+                        elif "prd" in step_name.lower():
+                            module = "prd"
+                        
+                        log_detailed_data(
+                            session_id=session_id,
+                            doc_id=doc_id,
+                            module=module,
+                            step=step_name,
+                            content=pdf_research,
+                            ai_model="pdf",
+                            input_tokens=0,
+                            output_tokens=0,
+                            tokens_used=0,
+                            cost_usd=0.0,
+                            content_length=len(extracted_text)
+                        )
+                    except Exception as e:
+                        print(f"Error logging PDF content details: {e}")
+                    
+                    # Clear processing state on success
+                    st.session_state[pdf_processing_key] = False
+                    st.success("✅ PDF research processed and saved!")
+                    return True, pdf_research, f'pdf_upload:{uploaded_file.name}', doc_id
+                    
+                except Exception as e:
+                    # Clear processing state on error
+                    st.session_state[pdf_processing_key] = False
+                    st.error(f"Error processing PDF: {str(e)}")
+                    return False, None, None, None
     
     return False, None, None, None
 
