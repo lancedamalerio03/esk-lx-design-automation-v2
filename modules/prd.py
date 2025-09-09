@@ -174,8 +174,15 @@ def step_problem_statement(prd_data):
     - **Constraints:** What limitations must be considered?
     """)
     
-    # Prepare context for AI generation - cumulative PRD context
+    # Prepare context for AI generation - foundational + cumulative PRD context
+    topic_data = st.session_state.session_data.get('topic_research_data', {})
+    client_data = st.session_state.session_data.get('client_conversation_data', {})
+    model_data = st.session_state.session_data.get('model_deliverable_data', {})
+    
     context_data = {
+        'topic_research': topic_data.get('research_output', ''),
+        'model_deliverable': model_data.get('deliverable_output', ''),
+        'client_information': client_data.get('info_output', ''),
         'executive_summary': executive_summary
     }
     
@@ -264,8 +271,15 @@ def step_goals_and_success(prd_data):
     - **Key Performance Indicators:** Specific metrics to track
     """)
     
-    # Prepare context for AI generation - cumulative PRD context
+    # Prepare context for AI generation - foundational + cumulative PRD context
+    topic_data = st.session_state.session_data.get('topic_research_data', {})
+    client_data = st.session_state.session_data.get('client_conversation_data', {})
+    model_data = st.session_state.session_data.get('model_deliverable_data', {})
+    
     context_data = {
+        'topic_research': topic_data.get('research_output', ''),
+        'model_deliverable': model_data.get('deliverable_output', ''),
+        'client_information': client_data.get('info_output', ''),
         'executive_summary': prd_data.get('executive_summary_output', ''),
         'problem_statement': problem_statement
     }
@@ -349,8 +363,15 @@ def step_roles_and_responsibilities(prd_data):
     - **Decision Makers:** Who has authority for key decisions
     """)
     
-    # Prepare context for AI generation - cumulative PRD context
+    # Prepare context for AI generation - foundational + cumulative PRD context
+    topic_data = st.session_state.session_data.get('topic_research_data', {})
+    client_data = st.session_state.session_data.get('client_conversation_data', {})
+    model_data = st.session_state.session_data.get('model_deliverable_data', {})
+    
     context_data = {
+        'topic_research': topic_data.get('research_output', ''),
+        'model_deliverable': model_data.get('deliverable_output', ''),
+        'client_information': client_data.get('info_output', ''),
         'executive_summary': prd_data.get('executive_summary_output', ''),
         'problem_statement': prd_data.get('problem_statement_output', ''),
         'goals_and_success': goals_and_success
@@ -435,8 +456,15 @@ def step_constraints_and_assumptions(prd_data):
     - **Key Assumptions:** What we're assuming to be true for planning
     """)
     
-    # Prepare context for AI generation - cumulative PRD context
+    # Prepare context for AI generation - foundational + cumulative PRD context
+    topic_data = st.session_state.session_data.get('topic_research_data', {})
+    client_data = st.session_state.session_data.get('client_conversation_data', {})
+    model_data = st.session_state.session_data.get('model_deliverable_data', {})
+    
     context_data = {
+        'topic_research': topic_data.get('research_output', ''),
+        'model_deliverable': model_data.get('deliverable_output', ''),
+        'client_information': client_data.get('info_output', ''),
         'executive_summary': prd_data.get('executive_summary_output', ''),
         'problem_statement': prd_data.get('problem_statement_output', ''),
         'goals_and_success': prd_data.get('goals_and_success_output', ''),
@@ -522,8 +550,15 @@ def step_evaluation_criteria(prd_data):
     - **Continuous Improvement:** Process for ongoing refinement
     """)
     
-    # Prepare context for AI generation - cumulative PRD context
+    # Prepare context for AI generation - foundational + cumulative PRD context
+    topic_data = st.session_state.session_data.get('topic_research_data', {})
+    client_data = st.session_state.session_data.get('client_conversation_data', {})
+    model_data = st.session_state.session_data.get('model_deliverable_data', {})
+    
     context_data = {
+        'topic_research': topic_data.get('research_output', ''),
+        'model_deliverable': model_data.get('deliverable_output', ''),
+        'client_information': client_data.get('info_output', ''),
         'executive_summary': prd_data.get('executive_summary_output', ''),
         'problem_statement': prd_data.get('problem_statement_output', ''),
         'goals_and_success': prd_data.get('goals_and_success_output', ''),
@@ -610,8 +645,15 @@ def step_risk_and_mitigations(prd_data):
     - **Mitigation Strategies:** Specific actions to address each risk
     """)
     
-    # Prepare context for AI generation - cumulative PRD context
+    # Prepare context for AI generation - foundational + cumulative PRD context
+    topic_data = st.session_state.session_data.get('topic_research_data', {})
+    client_data = st.session_state.session_data.get('client_conversation_data', {})
+    model_data = st.session_state.session_data.get('model_deliverable_data', {})
+    
     context_data = {
+        'topic_research': topic_data.get('research_output', ''),
+        'model_deliverable': model_data.get('deliverable_output', ''),
+        'client_information': client_data.get('info_output', ''),
         'executive_summary': prd_data.get('executive_summary_output', ''),
         'problem_statement': prd_data.get('problem_statement_output', ''),
         'goals_and_success': prd_data.get('goals_and_success_output', ''),
@@ -729,8 +771,15 @@ def step_prd_generator(prd_data):
         st.warning("⚠️ Please complete all previous PRD steps before generating the final document.")
         return
     
-    # Prepare context for AI generation - all PRD components for final document
+    # Prepare context for AI generation - foundational context + all PRD components for final document
+    topic_data = st.session_state.session_data.get('topic_research_data', {})
+    client_data = st.session_state.session_data.get('client_conversation_data', {})
+    model_data = st.session_state.session_data.get('model_deliverable_data', {})
+    
     context_data = {
+        'topic_research': topic_data.get('research_output', ''),
+        'model_deliverable': model_data.get('deliverable_output', ''),
+        'client_information': client_data.get('info_output', ''),
         'executive_summary': prd_data.get('executive_summary_output', ''),
         'problem_statement': prd_data.get('problem_statement_output', ''),
         'goals_and_success': prd_data.get('goals_and_success_output', ''),
@@ -760,9 +809,17 @@ def step_prd_generator(prd_data):
         st.markdown("### ✅ PRD Generation Complete!")
         st.markdown("Your comprehensive Product Requirements Document has been created and saved.")
         
-        # Move to next workflow step (if exists)
-        # st.session_state.current_step = 5
-        # st.rerun()
+        # Log completion
+        log_session_data(
+            st.session_state.session_id,
+            'final_prd_completed',
+            {
+                'topic': topic,
+                'method': method_used,
+                'doc_id': doc_id,
+                'content_length': len(final_prd_content)
+            }
+        )
     
     # Navigation buttons
     st.markdown("---")

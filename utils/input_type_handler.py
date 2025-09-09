@@ -12,31 +12,20 @@ def render_research_input_options(topic, session_folder_id, session_id, step_nam
         context_data: Optional dict of context data for AI generation
     Returns: (success, research_content, method_used, doc_id)
     """
-    # Styling for the research options
+    # Clear any cached styling that might be causing the teal box
     st.markdown(
         """
         <style>
-        .seg-card {
-        background: linear-gradient(135deg, #2ba7a0 0%, #3ac0a2 100%);
-        padding: 18px 20px; border-radius: 20px; margin-top: 8px; margin-bottom: 12px;
-        }
-        .seg-inner {
-        background: rgba(255,255,255,0.10);
-        border-radius: 14px; padding: 10px 12px;
-        }
-        .seg-inner div[data-baseweb="radio"] > div { gap: 14px !important; flex-wrap: nowrap; }
-        .seg-inner label {
-        border-radius: 999px !important; padding: 6px 12px !important;
-        background: rgba(255,255,255,0.06); transition: background .15s ease;
-        }
-        .seg-inner label:hover { background: rgba(255,255,255,0.12); }
+        .seg-card { display: none !important; }
+        .seg-inner { display: none !important; }
+        div[data-testid="stRadio"] { background: transparent !important; }
+        div[data-testid="stRadio"] > div { background: transparent !important; }
         </style>
         """,
         unsafe_allow_html=True,
     )
     
     st.markdown("### ✍️ How would you like to provide the input?")
-    st.markdown('<div class="seg-card"><div class="seg-inner">', unsafe_allow_html=True)
     mode = st.radio(
         "Choose a method:",
         options=["Paste text", "Upload a PDF", "Ask AI to help"],
@@ -45,7 +34,6 @@ def render_research_input_options(topic, session_folder_id, session_id, step_nam
         label_visibility="visible",
         key=f"research_method_{step_name}"
     )
-    st.markdown('</div></div>', unsafe_allow_html=True)
     
     # Handle different research modes
     if mode == "Paste text":
@@ -90,7 +78,7 @@ def handle_paste_input(topic, session_folder_id, session_id, step_name):
                 content = (pasted or "").strip()
                 
                 # Create Google Doc with the research
-                doc_title = f"{step_name.title()} Research - {topic}"
+                doc_title = f"{step_name.title()} - {topic}"
                 doc_content = f"# {step_name.title()} Research: {topic}\n\n## Research Method: Pasted Content\n\n{content}"
                 
                 doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
@@ -197,7 +185,7 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
                     )
                     
                     # Create Google Doc with the research
-                    doc_title = f"{step_name.title()} Research - {topic} (PDF)"
+                    doc_title = f"{step_name.title()} - {topic} (PDF)"
                     doc_id = create_google_doc(doc_title, pdf_research, session_folder_id)
                     
                     # Log this step to both legacy and detailed logs
@@ -286,8 +274,17 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                     st.error("Could not retrieve AI prompts. Please check your Google Docs access.")
                     return False, None, None, None
                 
-                # Combine meta prompt with module prompt
-                combined_prompt = f"{meta_prompt}\n\n{module_prompt}"
+                # Check if this is a PRD step and include PRD meta prompt
+                if prompt_type.startswith('prd_'):
+                    prd_meta_prompt = get_prompt_content('prd_meta_prompt')
+                    if not prd_meta_prompt:
+                        st.error("Could not retrieve PRD meta prompt. Please check your Google Docs access.")
+                        return False, None, None, None
+                    # Three-layer prompt structure for PRD steps
+                    combined_prompt = f"{meta_prompt}\n\n{prd_meta_prompt}\n\n{module_prompt}"
+                else:
+                    # Two-layer prompt structure for non-PRD steps
+                    combined_prompt = f"{meta_prompt}\n\n{module_prompt}"
                 
                 # Generate AI response with context data if provided
                 if context_data:
@@ -297,7 +294,7 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                 
                 if research:
                     # Create Google Doc with the research
-                    doc_title = f"{step_name.title()} Research - {topic} (AI Generated)"
+                    doc_title = f"{step_name.title()} - {topic} (AI Generated)"
                     doc_content = f"# AI {step_name.title()} Research: {topic}\n\n## Research Method: AI Generated\n\n{research}"
                     
                     doc_id = create_google_doc(doc_title, doc_content, session_folder_id)

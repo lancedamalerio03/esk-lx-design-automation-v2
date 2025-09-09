@@ -27,7 +27,10 @@ prd_roles_and_responsibilities = st.secrets.get("PRD_ROLES_AND_RESPONSIBILITIES_
 prd_constraints_and_assumptions = st.secrets.get("PRD_CONSTRAINTS_AND_ASSUMPTIONS_ID")
 prd_evaluation_criteria = st.secrets.get("PRD_EVALUATION_CRITERIA_ID")
 prd_risk_and_mitigations = st.secrets.get("PRD_RISK_AND_MITIGATIONS_ID")    
-prd_generator = st.secrets.get("PRD_GENERATOR_ID")  
+prd_generator = st.secrets.get("PRD_GENERATOR_ID")
+
+# Sprint Backlog Document ID (Coming Soon - not implemented yet)
+# sprint_backlog_generator = st.secrets.get("SPRINT_BACKLOG_GENERATOR_ID")
 
 # Mock Document IDs for testing (Google Docs)
 mock_topic = st.secrets.get("MOCK_TOPIC_ID")

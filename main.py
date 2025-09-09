@@ -8,6 +8,7 @@ from modules.topic_research import topic_research_module
 from modules.client_conversation import client_conversation_module
 from modules.model_deliverable import model_deliverable_module
 from modules.prd import prd_module
+from modules.sprint_backlog import sprint_backlog_module
 
 def main():
     """Main application entry point"""
@@ -106,6 +107,12 @@ def render_document_links():
         doc_url = get_document_url(prd_data['final_prd_doc_id'])
         st.markdown(f"📋 [Final PRD]({doc_url})")
     
+    # Sprint Backlog documents
+    sprint_backlog_data = session_data.get('sprint_backlog_data', {})
+    if sprint_backlog_data.get('sprint_backlog_doc_id'):
+        doc_url = get_document_url(sprint_backlog_data['sprint_backlog_doc_id'])
+        st.markdown(f"🚀 [Sprint Backlog]({doc_url})")
+    
     # Show message if no documents yet
     if not any([
         topic_data.get('research_doc_id'),
@@ -114,7 +121,8 @@ def render_document_links():
         prd_data.get('executive_summary_doc_id'), prd_data.get('problem_statement_doc_id'),
         prd_data.get('goals_and_success_doc_id'), prd_data.get('roles_and_responsibilities_doc_id'),
         prd_data.get('constraints_and_assumptions_doc_id'), prd_data.get('evaluation_criteria_doc_id'),
-        prd_data.get('risk_and_mitigations_doc_id'), prd_data.get('final_prd_doc_id')
+        prd_data.get('risk_and_mitigations_doc_id'), prd_data.get('final_prd_doc_id'),
+        sprint_backlog_data.get('sprint_backlog_doc_id')
     ]):
         st.info("No documents created yet")
 
@@ -148,7 +156,8 @@ def render_sidebar():
             "1. Topic Research",
             "2. Client Conversation", 
             "3. Model Deliverable",
-            "4. PRD Generation"
+            "4. PRD Generation",
+            "5. Sprint Backlog"
         ]
         
         for i, step in enumerate(steps, 1):
@@ -287,6 +296,8 @@ def render_main_content():
         model_deliverable_module()
     elif st.session_state.current_step == 4:
         prd_module()
+    elif st.session_state.current_step == 5:
+        sprint_backlog_module()
     else:
         st.error("Invalid step selected")
 
