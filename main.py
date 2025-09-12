@@ -10,6 +10,9 @@ from modules.model_deliverable import model_deliverable_module
 from modules.prd import prd_module
 from modules.sprint_backlog import sprint_backlog_module
 
+# Make response chain functions available for import
+__all__ = ['get_previous_response_id', 'update_response_chain', 'get_manual_context_for_ai', 'store_manual_input']
+
 def main():
     """Main application entry point"""
     st.set_page_config(
@@ -30,6 +33,12 @@ def main():
         st.session_state.session_data = {}
         st.session_state.session_folder_id = None
         st.session_state.session_log_sheet_id = None
+        # Initialize response chain tracking
+        st.session_state.response_chain = {
+            'current_response_id': None,
+            'step_history': {},  # Maps step_name to response_id
+            'manual_inputs': {}  # Maps step_name to manual content for hybrid approach
+        }
     
     # Create session folder in OUTPUTS automatically
     if not st.session_state.session_folder_id:
@@ -39,6 +48,8 @@ def main():
             # Clear LAST CREATED folder for new session
             from utils.google_drive_manager import clear_last_created_folder
             clear_last_created_folder()
+            # Reset response chain for new session
+            reset_response_chain()
             # Create session log sheet
             log_sheet_id = create_session_log_sheet(st.session_state.session_id)
             if log_sheet_id:
@@ -130,6 +141,21 @@ def render_sidebar():
     """Render the sidebar with navigation and session info"""
     with st.sidebar:
         st.header("LX Design v2")
+        
+        # Debug: Show response chain status
+        if st.session_state.get('developer_mode', False):
+            with st.expander("🔗 Response Chain Debug", expanded=False):
+                current_id = st.session_state.response_chain.get('current_response_id')
+                step_history = st.session_state.response_chain.get('step_history', {})
+                manual_inputs = st.session_state.response_chain.get('manual_inputs', {})
+                
+                st.text(f"Current Response ID: {current_id}")
+                st.text("AI Step History:")
+                for step, resp_id in step_history.items():
+                    st.text(f"  {step}: {resp_id}")
+                st.text("Manual Inputs:")
+                for step, data in manual_inputs.items():
+                    st.text(f"  {step}: {data['method']}")
         
         # Session info
         st.markdown("### 📋 Session Info")
@@ -310,6 +336,45 @@ def log_step_completion(step_name, data):
             data,
             st.session_state.session_log_sheet_id
         )
+
+def get_previous_response_id():
+    """Get the current response ID for chaining"""
+    return st.session_state.response_chain.get('current_response_id')
+
+def update_response_chain(step_name, response_id):
+    """Update the response chain with new response ID"""
+    if response_id:
+        st.session_state.response_chain['current_response_id'] = response_id
+        st.session_state.response_chain['step_history'][step_name] = response_id
+
+def reset_response_chain():
+    """Reset response chain for new session"""
+    st.session_state.response_chain = {
+        'current_response_id': None,
+        'step_history': {},
+        'manual_inputs': {}
+    }
+
+def store_manual_input(step_name, content, method='manual'):
+    """Store manual input content for later AI steps to use as context"""
+    st.session_state.response_chain['manual_inputs'][step_name] = {
+        'content': content,
+        'method': method
+    }
+
+def get_manual_context_for_ai():
+    """Get manual inputs to include as context for AI generation"""
+    manual_inputs = st.session_state.response_chain.get('manual_inputs', {})
+    if not manual_inputs:
+        return {}
+    
+    context = {}
+    for step_name, data in manual_inputs.items():
+        # Format step name for context
+        context_key = f"manual_{step_name}"
+        context[context_key] = f"User provided {data['method']}: {data['content']}"
+    
+    return context
 
 def log_session_status_update():
     """Log session status updates to Session_Logs"""

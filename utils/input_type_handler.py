@@ -126,6 +126,10 @@ def handle_paste_input(topic, session_folder_id, session_id, step_name):
                 except Exception as e:
                     print(f"Error logging pasted content details: {e}")
                 
+                # Store manual input for hybrid approach
+                from main import store_manual_input
+                store_manual_input(step_name, content, 'pasted_text')
+                
                 # Clear processing state on success
                 st.session_state[paste_processing_key] = False
                 st.success("✅ Research saved!")
@@ -232,6 +236,10 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
                     except Exception as e:
                         print(f"Error logging PDF content details: {e}")
                     
+                    # Store manual input for hybrid approach
+                    from main import store_manual_input
+                    store_manual_input(step_name, extracted_text, f'pdf_upload:{uploaded_file.name}')
+                    
                     # Clear processing state on success
                     st.session_state[pdf_processing_key] = False
                     st.success("✅ PDF research processed and saved!")
@@ -286,11 +294,30 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                     # Two-layer prompt structure for non-PRD steps
                     combined_prompt = f"{meta_prompt}\n\n{module_prompt}"
                 
-                # Generate AI response with context data if provided
+                # Get previous response ID for continuity (hybrid approach)
+                from utils.response_chain import get_previous_response_id, update_response_chain, get_manual_context_for_ai
+                previous_response_id = get_previous_response_id()
+                
+                # Prepare context with instruction for current step
                 if context_data:
-                    research = generate_ai_response(combined_prompt, context_data, step_name)
+                    # Add any manual inputs from previous steps as additional context
+                    manual_context = get_manual_context_for_ai()
+                    if manual_context:
+                        context_data.update(manual_context)
+                    
+                    context_data['current_instruction'] = f"Generate {step_name.replace('_', ' ')}"
+                    research, response_id = generate_ai_response(combined_prompt, context_data, step_name, previous_response_id)
                 else:
-                    research = generate_ai_response(combined_prompt, {'topic': topic}, step_name)
+                    # First step or simple context
+                    context = {'topic': topic, 'current_instruction': f"Research {topic}"}
+                    manual_context = get_manual_context_for_ai()
+                    if manual_context:
+                        context.update(manual_context)
+                    
+                    research, response_id = generate_ai_response(combined_prompt, context, step_name, previous_response_id)
+                
+                # Update response chain for next AI step
+                update_response_chain(step_name, response_id)
                 
                 if research:
                     # Create Google Doc with the research

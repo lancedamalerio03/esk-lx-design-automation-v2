@@ -96,32 +96,57 @@ def reset_token_tracking():
     if 'token_tracker' in st.session_state:
         st.session_state.token_tracker = TokenTracker()
     
-def generate_ai_response(prompt, context, step_name="unknown") -> str:
+def generate_ai_response(prompt, context, step_name="unknown", previous_response_id=None) -> tuple[str, str]:
     try:
-        
-        # Convert context dict to structured text
-        context_str = ""
-        if isinstance(context, dict):
-            for key, value in context.items():
-                context_str += f"{key.title().replace('_', ' ')}: {value}\n\n"
-        else:
-            context_str = str(context)
         
         # Get selected model from session state
         model = st.session_state.get('selected_ai_model', 'gpt-5')
         max_tokens = 15000
         
-        # EXPERIMENTAL: Using responses API format
-        # NOTE: This is experimental - if it doesn't work, will revert back to chat.completions
+        # Use responses API with previous_response_id for continuity
         api_params = {
             "model": model,
             "instructions": prompt,
-            "input": context_str,
             "max_output_tokens": max_tokens
         }
         
+        # Add context handling
+        if previous_response_id:
+            # Use previous response for context continuity
+            api_params["previous_response_id"] = previous_response_id
+            # Use minimal input - just the current step instruction
+            if isinstance(context, dict) and context.get('current_instruction'):
+                api_params["input"] = context['current_instruction']
+            else:
+                api_params["input"] = f"Continue with {step_name}"
+        else:
+            # First step or fallback - use full context as before
+            if isinstance(context, dict):
+                context_str = ""
+                for key, value in context.items():
+                    if key != 'current_instruction':  # Skip instruction key
+                        context_str += f"{key.title().replace('_', ' ')}: {value}\n\n"
+                api_params["input"] = context_str
+            else:
+                api_params["input"] = str(context)
+        
+        # Debug logging in developer mode
+        if st.session_state.get('developer_mode', False):
+            st.write("🔧 **API Call Debug:**")
+            st.write(f"**Model:** {api_params['model']}")
+            st.write(f"**Previous Response ID:** {api_params.get('previous_response_id', 'None')}")
+            st.write(f"**Input:** {api_params['input'][:200]}..." if len(api_params['input']) > 200 else f"**Input:** {api_params['input']}")
+            st.write(f"**Instructions Length:** {len(api_params['instructions'])} characters")
+        
         response = client.responses.create(**api_params)
         ai_response = response.output_text
+        response_id = response.id
+        
+        # Debug logging in developer mode
+        if st.session_state.get('developer_mode', False):
+            st.write(f"**New Response ID:** {response_id}")
+            st.write(f"**Input Tokens:** {response.usage.input_tokens if hasattr(response, 'usage') else 'Unknown'}")
+            st.write("---")
         
         # Track token usage and log to Google Sheets
         if hasattr(response, 'usage') and response.usage:
@@ -177,9 +202,9 @@ def generate_ai_response(prompt, context, step_name="unknown") -> str:
             except Exception as e:
                 print(f"Error logging detailed data: {e}")
         
-        return ai_response
+        return ai_response, response_id
         
     except Exception as e:
         # Log the actual error for debugging
         print(f"Error generating AI response: {str(e)}")
-        return f"I apologize, but I encountered an error: {str(e)}. Please try again."
+        return f"I apologize, but I encountered an error: {str(e)}. Please try again.", None
