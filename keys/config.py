@@ -28,6 +28,7 @@ prd_constraints_and_assumptions = st.secrets.get("PRD_CONSTRAINTS_AND_ASSUMPTION
 prd_evaluation_criteria = st.secrets.get("PRD_EVALUATION_CRITERIA_ID")
 prd_risk_and_mitigations = st.secrets.get("PRD_RISK_AND_MITIGATIONS_ID")    
 prd_generator = st.secrets.get("PRD_GENERATOR_ID")
+prd_template = st.secrets.get("PRD_TEMPLATE_ID")
 
 # Sprint Backlog Document ID (Coming Soon - not implemented yet)
 # sprint_backlog_generator = st.secrets.get("SPRINT_BACKLOG_GENERATOR_ID")

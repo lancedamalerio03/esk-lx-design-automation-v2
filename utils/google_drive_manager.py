@@ -334,6 +334,217 @@ def get_folder_url(folder_id):
     """Get the URL for a Google Drive folder"""
     return f"https://drive.google.com/drive/folders/{folder_id}"
 
+def copy_template_and_fill_placeholders(template_id, title, placeholders_dict, folder_id=None):
+    """Copy a template document and fill placeholders with actual content"""
+    print(f"DEBUG: Starting template copy with template_id={template_id}, title={title}, folder_id={folder_id}")
+    
+    drive_service = get_drive_service()
+    docs_service = get_docs_service()
+    
+    if not drive_service:
+        print("ERROR: Could not get drive service")
+        return None
+    if not docs_service:
+        print("ERROR: Could not get docs service")
+        return None
+    if not template_id:
+        print("ERROR: No template_id provided")
+        return None
+    
+    try:
+        print(f"DEBUG: Copying template {template_id}...")
+        
+        # First copy the template
+        copied_file = {
+            'name': title,
+            'parents': [folder_id] if folder_id else ['root']
+        }
+        
+        copy_result = drive_service.files().copy(
+            fileId=template_id,
+            body=copied_file
+        ).execute()
+        
+        document_id = copy_result.get('id')
+        print(f"DEBUG: Template copied successfully, new document_id={document_id}")
+        
+        if not document_id:
+            print("ERROR: Copy operation succeeded but no document_id returned")
+            return None
+        
+        # Now fill the placeholders
+        print(f"DEBUG: Filling {len(placeholders_dict)} placeholders...")
+        requests = []
+        
+        for placeholder, content in placeholders_dict.items():
+            # Find and replace all instances of the placeholder
+            requests.append({
+                'replaceAllText': {
+                    'containsText': {
+                        'text': placeholder,
+                        'matchCase': False
+                    },
+                    'replaceText': content or ''
+                }
+            })
+        
+        print(f"DEBUG: Created {len(requests)} replacement requests")
+        
+        # Execute all replacements in batches (Google Docs has request limits)
+        batch_size = 100
+        for i in range(0, len(requests), batch_size):
+            batch_requests = requests[i:i + batch_size]
+            if batch_requests:
+                print(f"DEBUG: Executing batch {i//batch_size + 1} with {len(batch_requests)} requests")
+                docs_service.documents().batchUpdate(
+                    documentId=document_id,
+                    body={'requests': batch_requests}
+                ).execute()
+        
+        print("DEBUG: All placeholder replacements completed")
+        
+        # Table filling functionality removed - using simple placeholder replacement only
+        
+        # Always copy to LAST CREATED folder
+        print("DEBUG: Copying to LAST CREATED folder...")
+        copy_file_to_last_created(document_id)
+        
+        print(f"DEBUG: Template filling completed successfully. Document ID: {document_id}")
+        return document_id
+        
+    except Exception as e:
+        print(f"ERROR copying template and filling placeholders: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def format_prd_data_for_template(prd_data, topic):
+    """Convert nested PRD JSON data to template placeholders"""
+    placeholders = {}
+    
+    # Title
+    placeholders['{Title}'] = prd_data.get('title', f'PRD - {topic}')
+    
+    # Executive Summary - handle nested structure
+    exec_summary = prd_data.get('Executive_Summary', {}).get('Executive_Summary', {})
+    placeholders['{{Executive_Summary.Context_and_Identity}}'] = format_array_as_text(exec_summary.get('Context_and_Identity', []))
+    placeholders['{{Executive_Summary.Purpose_and_Intent}}'] = format_array_as_text(exec_summary.get('Purpose_and_Intent', []))
+    placeholders['{{Executive_Summary.Problem_Framing}}'] = format_array_as_text(exec_summary.get('Problem_Framing', []))
+    placeholders['{{Executive_Summary.Proposed_Solution}}'] = format_array_as_text(exec_summary.get('Proposed_Solution', []))
+    placeholders['{{Executive_Summary.Desired_Impact}}'] = format_array_as_bullets(exec_summary.get('Desired_Impact', []))
+    placeholders['{{Executive_Summary.Alignment_With_Client_Mission}}'] = format_array_as_text(exec_summary.get('Alignment_with_Client_Mission', []))
+    
+    # Problem Statement
+    prob_statement = prd_data.get('Problem_Statement', {}).get('Problem_Statement', {})
+    placeholders['{{Problem_Statement.Core_Focus}}'] = format_array_as_text(prob_statement.get('Core_Focus', []))
+    placeholders['{{Problem_Statement.Specific_Evidence}}'] = format_array_as_text(prob_statement.get('Specific_Evidence', []))
+    placeholders['{{Problem_Statement.Contextualization}}'] = format_array_as_text(prob_statement.get('Contextualization', []))
+    placeholders['{{Problem_Statement.Proposed_Solution}}'] = format_array_as_text(prob_statement.get('Proposed_Solution', []))
+    placeholders['{{Problem_Statement.Impact}}'] = format_array_as_text(prob_statement.get('Impact', []))
+    placeholders['{{Problem_Statement.Scope}}'] = format_array_as_text(prob_statement.get('Scope', []))
+    
+    # Goals and Success Metrics
+    goals_metrics = prd_data.get('Goals_and_Success_Metrics', {}).get('Goals_and_Success_Metrics', {})
+    placeholders['{{Goals_and_Success_Metrics.Clear_Goals}}'] = format_array_as_bullets(goals_metrics.get('Clear_Goals', []))
+    placeholders['{{Goals_and_Success_Metrics.Success_Metrics}}'] = format_array_as_bullets(goals_metrics.get('Success_Metrics', []))
+    
+    # Roles and Responsibilities - simple placeholder replacement
+    roles_resp = prd_data.get('Roles_and_Responsibilities', {}).get('Roles_and_Responsibilities', {})
+    
+    # Facilitators
+    facilitators = roles_resp.get('Facilitator_Team', {}).get('Facilitators', [])
+    if facilitators:
+        placeholders['{{Facilitators.Role}}'] = '\n'.join([f.get('Role', '') for f in facilitators])
+        placeholders['{{Facilitators.Responsibilities}}'] = '\n'.join([f.get('Responsibilities', '') for f in facilitators])
+    
+    # Clients  
+    clients = roles_resp.get('Client_Team', {}).get('Clients', [])
+    if clients:
+        placeholders['{{Clients.Role}}'] = '\n'.join([c.get('Role', '') for c in clients])
+        placeholders['{{Clients.Responsibilities}}'] = '\n'.join([c.get('Responsibilities', '') for c in clients])
+    
+    # Learner Profiles
+    learners = roles_resp.get('Learner_Profiles', [])
+    if learners:
+        placeholders['{{Learner_Profiles.Category}}'] = '\n'.join([l.get('Category', '') for l in learners])
+        placeholders['{{Learner_Profiles.Background}}'] = '\n'.join([l.get('Background', '') for l in learners])
+        placeholders['{{Learner_Profiles.User_Stories}}'] = '\n'.join([l.get('User_Stories', '') for l in learners])
+        placeholders['{{Learner_Profiles.Strengths}}'] = '\n'.join([l.get('Strengths', '') for l in learners])
+        placeholders['{{Learner_Profiles.Needs}}'] = '\n'.join([l.get('Needs', '') for l in learners])
+    
+    # Constraints and Assumptions
+    const_assump = prd_data.get('Constraints_and_Assumptions', {}).get('Constraints_and_Assumptions', {})
+    constraints = const_assump.get('Constraints', [])
+    assumptions = const_assump.get('Assumptions', [])
+    
+    placeholders['{{Constraints_and_Assumptions.Constraints}}'] = format_constraints_assumptions(constraints)
+    placeholders['{{Constraints_and_Assumptions.Assumptions}}'] = format_constraints_assumptions(assumptions)
+    
+    # Evaluation Criteria
+    eval_criteria = prd_data.get('Evaluation_Criteria', {}).get('Evaluation_Criteria', {})
+    def_of_done = eval_criteria.get('Definition_of_Done', {})
+    
+    placeholders['{{Evaluation_Criteria.Deliverables}}'] = format_array_as_bullets([d.get('Deliverable', '') for d in def_of_done.get('Deliverables', [])])
+    placeholders['{{Evaluation_Criteria.Engagement}}'] = format_array_as_bullets([e.get('Requirement', '') for e in def_of_done.get('Engagement', [])])
+    placeholders['{{Evaluation_Criteria.Compliance}}'] = format_array_as_bullets([c.get('Requirement', '') for c in def_of_done.get('Compliance', [])])
+    placeholders['{{Evaluation_Criteria.Functional_Requirements}}'] = format_array_as_bullets([r.get('Requirement', '') for r in eval_criteria.get('Functional_Requirements', [])])
+    placeholders['{{Evaluation_Criteria.Non_Functional_Requirements}}'] = format_array_as_bullets([r.get('Requirement', '') for r in eval_criteria.get('Non_Functional_Requirements', [])])
+    placeholders['{{Evaluation_Criteria.Deliverable_Rubric}}'] = format_rubric(eval_criteria.get('Deliverable_Rubric', []))
+    placeholders['{{Evaluation_Criteria.Passing_Threshold}}'] = eval_criteria.get('Passing_Threshold', '')
+    
+    # Risks and Mitigations - simple placeholder replacement
+    risks_mit = prd_data.get('Risks_and_Mitigations', {}).get('Risks_and_Mitigations', {})
+    items = risks_mit.get('Items', [])
+    
+    # Simple placeholders for template
+    placeholders['{{List.Risks}}'] = '\n'.join([item.get('Risk', '') for item in items])
+    placeholders['{{List.Mitigations}}'] = '\n'.join([item.get('Mitigation', '') for item in items])
+    
+    return placeholders
+
+
+def format_array_as_text(arr):
+    """Convert array to paragraph text"""
+    if not arr:
+        return ''
+    return '\n\n'.join(str(item) for item in arr)
+
+def format_array_as_bullets(arr):
+    """Convert array to bullet points"""
+    if not arr:
+        return ''
+    return '\n'.join(f'• {item}' for item in arr)
+
+def format_constraints_assumptions(items):
+    """Format constraints/assumptions with headlines"""
+    if not items:
+        return ''
+    formatted = []
+    for item in items:
+        if isinstance(item, dict):
+            headline = item.get('Constraint', item.get('Assumption', ''))
+            description = item.get('Description', '')
+            formatted.append(f'• {headline}: {description}')
+        else:
+            formatted.append(f'• {item}')
+    return '\n'.join(formatted)
+
+def format_rubric(rubric_items):
+    """Format rubric items as bullet points"""
+    if not rubric_items:
+        return ''
+    formatted = []
+    for item in rubric_items:
+        if isinstance(item, dict):
+            criteria = item.get('Criteria', '')
+            points = item.get('Points', '')
+            description = item.get('Description', '')
+            formatted.append(f'• {criteria} ({points}): {description}')
+        else:
+            formatted.append(f'• {item}')
+    return '\n'.join(formatted)
+
+
 def share_with_user(file_id, email, role='writer'):
     """Share a file or folder with a specific user"""
     drive_service = get_drive_service()
