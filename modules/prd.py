@@ -774,15 +774,8 @@ def step_prd_generator(prd_data):
         st.warning("⚠️ Please complete all previous PRD steps before generating the final document.")
         return
     
-    # Prepare context for AI generation - foundational context + all PRD components for final document
-    topic_data = st.session_state.session_data.get('topic_research_data', {})
-    client_data = st.session_state.session_data.get('client_conversation_data', {})
-    model_data = st.session_state.session_data.get('model_deliverable_data', {})
-    
+    # Prepare context for AI generation - ONLY PRD components (no topic research, client info, or model deliverable)
     context_data = {
-        'topic_research': topic_data.get('research_output', ''),
-        'model_deliverable': model_data.get('deliverable_output', ''),
-        'client_information': client_data.get('info_output', ''),
         'executive_summary': prd_data.get('executive_summary_output', ''),
         'problem_statement': prd_data.get('problem_statement_output', ''),
         'goals_and_success': prd_data.get('goals_and_success_output', ''),
@@ -867,8 +860,40 @@ def step_prd_generator(prd_data):
             # Fallback - use session data
             prd_json = create_prd_json_from_session_data(prd_data, topic, context_data)
         
+        # First, save the raw JSON data to a document for debugging
+        with st.spinner("Saving raw JSON data..."):
+            from utils.google_drive_manager import create_google_doc
+            
+            raw_json_content = json.dumps(prd_json, indent=2, ensure_ascii=False)
+            raw_json_doc_title = f"PRD JSON Raw Data - {topic}"
+            raw_json_doc_id = create_google_doc(raw_json_doc_title, raw_json_content, st.session_state.session_folder_id)
+            
+            if raw_json_doc_id:
+                st.success(f"✅ Raw JSON data saved!")
+                from utils.google_drive_manager import get_document_url
+                raw_json_doc_url = get_document_url(raw_json_doc_id)
+                st.markdown(f"📄 [View Raw JSON Data]({raw_json_doc_url})")
+        
         # Now generate the final PRD from template
         with st.spinner("Creating PRD from template..."):
+            # Also save the placeholder mappings for debugging
+            from utils.google_drive_manager import format_prd_data_for_template
+            placeholders = format_prd_data_for_template(prd_json, topic)
+            
+            placeholders_content = "PLACEHOLDER MAPPINGS FOR DEBUGGING:\n\n"
+            for placeholder, content in placeholders.items():
+                placeholders_content += f"PLACEHOLDER: {placeholder}\n"
+                placeholders_content += f"CONTENT: {content}\n"
+                placeholders_content += "-" * 50 + "\n\n"
+            
+            placeholders_doc_title = f"PRD Placeholder Mappings - {topic}"
+            placeholders_doc_id = create_google_doc(placeholders_doc_title, placeholders_content, st.session_state.session_folder_id)
+            
+            if placeholders_doc_id:
+                st.success(f"✅ Placeholder mappings saved!")
+                placeholders_doc_url = get_document_url(placeholders_doc_id)
+                st.markdown(f"📄 [View Placeholder Mappings]({placeholders_doc_url})")
+            
             final_doc_id = generate_prd_from_template(prd_json, topic, st.session_state.session_folder_id)
             
             if final_doc_id:

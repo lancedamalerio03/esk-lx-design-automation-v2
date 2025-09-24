@@ -79,7 +79,7 @@ def handle_paste_input(topic, session_folder_id, session_id, step_name):
                 
                 # Create Google Doc with the research
                 doc_title = f"{step_name.title()} - {topic}"
-                doc_content = f"# {step_name.title()} Research: {topic}\n\n## Research Method: Pasted Content\n\n{content}"
+                doc_content = content
                 
                 doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
                 
@@ -174,15 +174,8 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
                         st.error("❌ Could not extract any text from this PDF. It may be image-only or protected.")
                         return False, None, None, None
                     
-                    # Format the research content
-                    pdf_research = (
-                        f"# PDF Research: {uploaded_file.name}\n\n"
-                        f"**Document Information:**\n"
-                        f"- Filename: {uploaded_file.name}\n"
-                        f"- Characters: {len(extracted_text):,}\n"
-                        f"- Words: {len(extracted_text.split()):,}\n\n"
-                        f"**Extracted Content:**\n{extracted_text}\n"
-                    )
+                    # Use clean extracted text only
+                    pdf_research = extracted_text
                     
                     # Create Google Doc with the research
                     doc_title = f"{step_name.title()} - {topic} (PDF)"
@@ -295,7 +288,7 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                 if research:
                     # Create Google Doc with the research
                     doc_title = f"{step_name.title()} - {topic} (AI Generated)"
-                    doc_content = f"# AI {step_name.title()} Research: {topic}\n\n## Research Method: AI Generated\n\n{research}"
+                    doc_content = research
                     
                     doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
                     
@@ -388,7 +381,7 @@ def load_mock_research(mock_type, topic, session_folder_id, session_id, step_nam
     if mock_research:
         # Create Google Doc with mock research
         doc_title = f"{step_name.title()} Research - {topic} (Mock Data)"
-        doc_content = f"# Mock {step_name.title()} Research: {topic}\n\n## Research Method: Mock Data\n\n{mock_research}"
+        doc_content = mock_research
         
         doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
         

@@ -422,58 +422,75 @@ def format_prd_data_for_template(prd_data, topic):
     """Convert nested PRD JSON data to template placeholders"""
     placeholders = {}
     
+    print(f"DEBUG: PRD data keys: {list(prd_data.keys())}")
+    
     # Title
     placeholders['{Title}'] = prd_data.get('title', f'PRD - {topic}')
     
-    # Executive Summary - handle nested structure
-    exec_summary = prd_data.get('Executive_Summary', {}).get('Executive_Summary', {})
-    placeholders['{{Executive_Summary.Context_and_Identity}}'] = format_array_as_text(exec_summary.get('Context_and_Identity', []))
-    placeholders['{{Executive_Summary.Purpose_and_Intent}}'] = format_array_as_text(exec_summary.get('Purpose_and_Intent', []))
-    placeholders['{{Executive_Summary.Problem_Framing}}'] = format_array_as_text(exec_summary.get('Problem_Framing', []))
-    placeholders['{{Executive_Summary.Proposed_Solution}}'] = format_array_as_text(exec_summary.get('Proposed_Solution', []))
-    placeholders['{{Executive_Summary.Desired_Impact}}'] = format_array_as_bullets(exec_summary.get('Desired_Impact', []))
-    placeholders['{{Executive_Summary.Alignment_With_Client_Mission}}'] = format_array_as_text(exec_summary.get('Alignment_with_Client_Mission', []))
+    # Executive Summary - direct array access (matches actual JSON structure)
+    exec_summary_array = prd_data.get('Executive_Summary', [])
+    print(f"DEBUG: Executive_Summary array length: {len(exec_summary_array) if exec_summary_array else 0}")
+    summary_text = format_array_as_text(exec_summary_array)
+    print(f"DEBUG: summary_text length: {len(summary_text)}")
+    placeholders['{{Executive_Summary}}'] = summary_text
     
-    # Problem Statement
-    prob_statement = prd_data.get('Problem_Statement', {}).get('Problem_Statement', {})
-    placeholders['{{Problem_Statement.Core_Focus}}'] = format_array_as_text(prob_statement.get('Core_Focus', []))
-    placeholders['{{Problem_Statement.Specific_Evidence}}'] = format_array_as_text(prob_statement.get('Specific_Evidence', []))
-    placeholders['{{Problem_Statement.Contextualization}}'] = format_array_as_text(prob_statement.get('Contextualization', []))
-    placeholders['{{Problem_Statement.Proposed_Solution}}'] = format_array_as_text(prob_statement.get('Proposed_Solution', []))
-    placeholders['{{Problem_Statement.Impact}}'] = format_array_as_text(prob_statement.get('Impact', []))
-    placeholders['{{Problem_Statement.Scope}}'] = format_array_as_text(prob_statement.get('Scope', []))
+    # Problem Statement - direct array access (matches actual JSON structure)
+    prob_statement_array = prd_data.get('Problem_Statement', [])
+    print(f"DEBUG: Problem_Statement array length: {len(prob_statement_array) if prob_statement_array else 0}")
+    problem_text = format_array_as_text(prob_statement_array)
+    print(f"DEBUG: problem_text length: {len(problem_text)}")
+    placeholders['{{Problem_Statement}}'] = problem_text
     
-    # Goals and Success Metrics
-    goals_metrics = prd_data.get('Goals_and_Success_Metrics', {}).get('Goals_and_Success_Metrics', {})
+    # Goals and Success Metrics - match template structure
+    goals_metrics = prd_data.get('Goals_and_Success_Metrics', {})
     placeholders['{{Goals_and_Success_Metrics.Clear_Goals}}'] = format_array_as_bullets(goals_metrics.get('Clear_Goals', []))
     placeholders['{{Goals_and_Success_Metrics.Success_Metrics}}'] = format_array_as_bullets(goals_metrics.get('Success_Metrics', []))
     
-    # Roles and Responsibilities - simple placeholder replacement
-    roles_resp = prd_data.get('Roles_and_Responsibilities', {}).get('Roles_and_Responsibilities', {})
+    # Roles and Responsibilities - match template structure
+    roles_resp = prd_data.get('Roles_and_Responsibilities', {})
     
     # Facilitators
     facilitators = roles_resp.get('Facilitator_Team', {}).get('Facilitators', [])
     if facilitators:
-        placeholders['{{Facilitators.Role}}'] = '\n'.join([f.get('Role', '') for f in facilitators])
-        placeholders['{{Facilitators.Responsibilities}}'] = '\n'.join([f.get('Responsibilities', '') for f in facilitators])
+        facilitator_table = format_table_rows(facilitators, 'Role', 'Responsibilities')
+        # Split into roles and responsibilities for table columns with bullet points
+        roles = [f"• {f.get('Role', '')}" for f in facilitators]
+        responsibilities = [f"• {f.get('Responsibilities', '')}" for f in facilitators]
+        placeholders['{{Facilitators.Role}}'] = '\n\n'.join(roles)
+        placeholders['{{Facilitators.Responsibilities}}'] = '\n\n'.join(responsibilities)
+    else:
+        placeholders['{{Facilitators.Role}}'] = ''
+        placeholders['{{Facilitators.Responsibilities}}'] = ''
     
     # Clients  
     clients = roles_resp.get('Client_Team', {}).get('Clients', [])
     if clients:
-        placeholders['{{Clients.Role}}'] = '\n'.join([c.get('Role', '') for c in clients])
-        placeholders['{{Clients.Responsibilities}}'] = '\n'.join([c.get('Responsibilities', '') for c in clients])
+        # Split into roles and responsibilities for table columns with bullet points
+        roles = [f"• {c.get('Role', '')}" for c in clients]
+        responsibilities = [f"• {c.get('Responsibilities', '')}" for c in clients]
+        placeholders['{{Clients.Role}}'] = '\n\n'.join(roles)
+        placeholders['{{Clients.Responsibilities}}'] = '\n\n'.join(responsibilities)
+    else:
+        placeholders['{{Clients.Role}}'] = ''
+        placeholders['{{Clients.Responsibilities}}'] = ''
     
     # Learner Profiles
     learners = roles_resp.get('Learner_Profiles', [])
     if learners:
-        placeholders['{{Learner_Profiles.Category}}'] = '\n'.join([l.get('Category', '') for l in learners])
-        placeholders['{{Learner_Profiles.Background}}'] = '\n'.join([l.get('Background', '') for l in learners])
-        placeholders['{{Learner_Profiles.User_Stories}}'] = '\n'.join([l.get('User_Stories', '') for l in learners])
-        placeholders['{{Learner_Profiles.Strengths}}'] = '\n'.join([l.get('Strengths', '') for l in learners])
-        placeholders['{{Learner_Profiles.Needs}}'] = '\n'.join([l.get('Needs', '') for l in learners])
+        placeholders['{{Learner_Profiles.Category}}'] = '\n\n'.join([f"• {l.get('Category', '')}" for l in learners])
+        placeholders['{{Learner_Profiles.Background}}'] = '\n\n'.join([f"• {l.get('Background', '')}" for l in learners])
+        placeholders['{{Learner_Profiles.User_Stories}}'] = '\n\n'.join([f"• {l.get('User_Stories', '')}" for l in learners])
+        placeholders['{{Learner_Profiles.Strengths}}'] = '\n\n'.join([f"• {l.get('Strengths', '')}" for l in learners])
+        placeholders['{{Learner_Profiles.Needs}}'] = '\n\n'.join([f"• {l.get('Needs', '')}" for l in learners])
+    else:
+        placeholders['{{Learner_Profiles.Category}}'] = ''
+        placeholders['{{Learner_Profiles.Background}}'] = ''
+        placeholders['{{Learner_Profiles.User_Stories}}'] = ''
+        placeholders['{{Learner_Profiles.Strengths}}'] = ''
+        placeholders['{{Learner_Profiles.Needs}}'] = ''
     
     # Constraints and Assumptions
-    const_assump = prd_data.get('Constraints_and_Assumptions', {}).get('Constraints_and_Assumptions', {})
+    const_assump = prd_data.get('Constraints_and_Assumptions', {})
     constraints = const_assump.get('Constraints', [])
     assumptions = const_assump.get('Assumptions', [])
     
@@ -481,7 +498,7 @@ def format_prd_data_for_template(prd_data, topic):
     placeholders['{{Constraints_and_Assumptions.Assumptions}}'] = format_constraints_assumptions(assumptions)
     
     # Evaluation Criteria
-    eval_criteria = prd_data.get('Evaluation_Criteria', {}).get('Evaluation_Criteria', {})
+    eval_criteria = prd_data.get('Evaluation_Criteria', {})
     def_of_done = eval_criteria.get('Definition_of_Done', {})
     
     placeholders['{{Evaluation_Criteria.Deliverables}}'] = format_array_as_bullets([d.get('Deliverable', '') for d in def_of_done.get('Deliverables', [])])
@@ -492,13 +509,19 @@ def format_prd_data_for_template(prd_data, topic):
     placeholders['{{Evaluation_Criteria.Deliverable_Rubric}}'] = format_rubric(eval_criteria.get('Deliverable_Rubric', []))
     placeholders['{{Evaluation_Criteria.Passing_Threshold}}'] = eval_criteria.get('Passing_Threshold', '')
     
-    # Risks and Mitigations - simple placeholder replacement
-    risks_mit = prd_data.get('Risks_and_Mitigations', {}).get('Risks_and_Mitigations', {})
+    # Risks and Mitigations - match template structure
+    risks_mit = prd_data.get('Risks_and_Mitigations', {})
     items = risks_mit.get('Items', [])
     
-    # Simple placeholders for template
-    placeholders['{{List.Risks}}'] = '\n'.join([item.get('Risk', '') for item in items])
-    placeholders['{{List.Mitigations}}'] = '\n'.join([item.get('Mitigation', '') for item in items])
+    # Format for table columns with bullet points
+    if items:
+        risks = [f"• {item.get('Risk', '')}" for item in items]
+        mitigations = [f"• {item.get('Mitigation', '')}" for item in items]
+        placeholders['{{List.Risks}}'] = '\n\n'.join(risks)
+        placeholders['{{List.Mitigations}}'] = '\n\n'.join(mitigations)
+    else:
+        placeholders['{{List.Risks}}'] = ''
+        placeholders['{{List.Mitigations}}'] = ''
     
     return placeholders
 
@@ -528,6 +551,28 @@ def format_constraints_assumptions(items):
         else:
             formatted.append(f'• {item}')
     return '\n'.join(formatted)
+
+def format_table_rows(items, role_key, responsibility_key):
+    """Format items as table rows for Google Docs"""
+    if not items:
+        return ''
+    rows = []
+    for item in items:
+        role = item.get(role_key, '')
+        resp = item.get(responsibility_key, '')
+        rows.append(f'{role}\t{resp}')
+    return '\n'.join(rows)
+
+def format_risks_mitigations_table(items):
+    """Format risks and mitigations as table rows"""
+    if not items:
+        return ''
+    risks = []
+    mitigations = []
+    for item in items:
+        risks.append(item.get('Risk', ''))
+        mitigations.append(item.get('Mitigation', ''))
+    return risks, mitigations
 
 def format_rubric(rubric_items):
     """Format rubric items as bullet points"""
