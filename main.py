@@ -177,7 +177,7 @@ def render_sidebar():
         # Model Selection
         st.markdown("### 🤖 AI Model")
         available_models = [
-            "gpt-5", "gpt-5-mini", "gpt-5-nano",
+            "gpt-5-pro", "gpt-5", "gpt-5-mini", "gpt-5-nano",
             "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", 
             "gpt-4o", "gpt-4o-mini",
             "o3", "o3-mini"

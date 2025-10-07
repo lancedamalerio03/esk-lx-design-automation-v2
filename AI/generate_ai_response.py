@@ -52,6 +52,7 @@ class TokenTracker:
         """Calculate cost based on token usage and model pricing"""
         # OpenAI pricing per 1M tokens (updated 2025-09-08)
         pricing = {
+            "gpt-5-pro":     {"input_per_1m": 15.00, "output_per_1m": 120.00},
             "gpt-5":         {"input_per_1m": 1.25, "output_per_1m": 10.00},
             "gpt-5-mini":    {"input_per_1m": 0.25, "output_per_1m": 2.00},
             "gpt-5-nano":    {"input_per_1m": 0.05, "output_per_1m": 0.40},
