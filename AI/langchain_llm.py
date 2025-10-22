@@ -21,7 +21,6 @@ from keys.config import (
 # Model mapping: UI name -> (provider, actual_model_name)
 MODEL_MAPPING = {
     # OpenAI Models
-    "gpt-5-pro": ("openai", "gpt-5-pro"),
     "gpt-5": ("openai", "gpt-5"),
     "gpt-5-mini": ("openai", "gpt-5-mini"),
     "gpt-5-nano": ("openai", "gpt-5-nano"),
@@ -41,11 +40,7 @@ MODEL_MAPPING = {
     
     # Claude Models (Anthropic)
     "claude-sonnet-4.5": ("anthropic", "claude-sonnet-4.5"),
-    "claude-sonnet-4": ("anthropic", "claude-sonnet-4"),
-    "claude-3.7-sonnet": ("anthropic", "claude-3.7-sonnet"),
-    "claude-3.5-sonnet": ("anthropic", "claude-3.5-sonnet"),
-    "claude-3-opus": ("anthropic", "claude-3-opus-20240229"),
-    "claude-3-haiku": ("anthropic", "claude-3-haiku-20240307"),
+    "claude-haiku-4.5": ("anthropic", "claude-haiku-4.5"),
     
     # Perplexity Reasoning Models (different from search tool)
     "perplexity-sonar-reasoning-pro": ("perplexity", "sonar-pro"),

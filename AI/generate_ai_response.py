@@ -56,7 +56,6 @@ class TokenTracker:
         # Gemini pricing per 1M tokens
         pricing = {
             # OpenAI Models
-            "gpt-5-pro":     {"input_per_1m": 15.00, "output_per_1m": 120.00},
             "gpt-5":         {"input_per_1m": 1.25, "output_per_1m": 10.00},
             "gpt-5-mini":    {"input_per_1m": 0.25, "output_per_1m": 2.00},
             "gpt-5-nano":    {"input_per_1m": 0.05, "output_per_1m": 0.40},
@@ -73,6 +72,14 @@ class TokenTracker:
             "gemini-2.0-flash-exp": {"input_per_1m": 0.00, "output_per_1m": 0.00},  # Free
             "gemini-1.5-flash":     {"input_per_1m": 0.00, "output_per_1m": 0.00},  # Free (up to limits)
             "gemini-1.5-pro":       {"input_per_1m": 1.25, "output_per_1m": 5.00},
+            
+            # Claude Models (Anthropic)
+            "claude-sonnet-4.5":    {"input_per_1m": 3.00, "output_per_1m": 15.00},
+            "claude-haiku-4.5":     {"input_per_1m": 0.25, "output_per_1m": 1.25},
+            
+            # Perplexity Models
+            "perplexity-sonar-reasoning-pro": {"input_per_1m": 1.00, "output_per_1m": 5.00},
+            "perplexity-sonar-reasoning":     {"input_per_1m": 0.20, "output_per_1m": 1.00},
         }
         
         model_pricing = pricing.get(model_name, pricing["gpt-5"])

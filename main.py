@@ -180,7 +180,7 @@ def render_sidebar():
         # Define models by provider
         models_by_provider = {
             "OpenAI": [
-                "gpt-5-pro", "gpt-5", "gpt-5-mini", "gpt-5-nano",
+                "gpt-5", "gpt-5-mini", "gpt-5-nano",
                 "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", 
                 "gpt-4o", "gpt-4o-mini",
                 "o3", "o3-mini"
@@ -193,11 +193,7 @@ def render_sidebar():
             ],
             "Claude (Anthropic)": [
                 "claude-sonnet-4.5",
-                "claude-sonnet-4",
-                "claude-3.7-sonnet",
-                "claude-3.5-sonnet",
-                "claude-3-opus",
-                "claude-3-haiku"
+                "claude-haiku-4.5"
             ],
             "Perplexity": [
                 "perplexity-sonar-reasoning-pro",
