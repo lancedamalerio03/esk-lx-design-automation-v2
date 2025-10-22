@@ -253,7 +253,7 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
         generation_method = st.radio(
             "How should AI generate content?",
             options=["Direct AI Generation (faster, uses training data)", 
-                     "AI Agent with Search (slower, more comprehensive, with citations)"],
+                     "Deep Research Agent (Coming Soon)"],
             help=(
                 "**Direct AI:** Fast (~10 sec), uses LLM training data only\n\n"
                 "**AI Agent:** Slower (~60 sec), searches web for current info, includes citations"
