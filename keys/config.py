@@ -4,6 +4,18 @@ import streamlit as st
 # OpenAI API Key
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
+# LangSmith API Key (for LangChain tracking)
+LANGSMITH_API_KEY = st.secrets.get("LANGSMITH_API_KEY", "")
+
+# Google AI API Key (for Gemini models)
+GOOGLE_AI_API_KEY = st.secrets.get("GOOGLE_AI_API_KEY", "")
+
+# Perplexity API Key (for reasoning models AND agent search tool)
+PERPLEXITY_API_KEY = st.secrets.get("PERPLEXITY_API_KEY", "")
+
+# Anthropic API Key (for Claude models)
+ANTHROPIC_API_KEY = st.secrets.get("ANTHROPIC_API_KEY", "")
+
 # Prompt Document IDs (Google Docs)
 meta_prompt = st.secrets.get("METAPROMPT_ID")
 

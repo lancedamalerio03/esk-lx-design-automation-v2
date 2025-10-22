@@ -239,8 +239,36 @@ def handle_pdf_upload(topic, session_folder_id, session_id, step_name):
     return False, None, None, None
 
 def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt_type='topic_researcher', context_data=None):
-    """Handle AI-generated content"""
-    st.markdown("Let AI generate content for your request")
+    """Handle AI-generated content (with or without agent-based research)"""
+    
+    # Determine if this is a research stage that CAN use the agent
+    research_stages = ['topic', 'model_research']  # Stages that benefit from search
+    is_research_stage = step_name in research_stages
+    
+    # For research stages, give user a choice
+    use_agent = False
+    if is_research_stage:
+        st.markdown("### 🤖 Choose Generation Method")
+        
+        generation_method = st.radio(
+            "How should AI generate content?",
+            options=["Direct AI Generation (faster, uses training data)", 
+                     "AI Agent with Search (slower, more comprehensive, with citations)"],
+            help=(
+                "**Direct AI:** Fast (~10 sec), uses LLM training data only\n\n"
+                "**AI Agent:** Slower (~60 sec), searches web for current info, includes citations"
+            ),
+            key=f"generation_method_{step_name}"
+        )
+        
+        use_agent = "Agent" in generation_method
+        
+        if use_agent:
+            st.info("🔍 Agent will search the web multiple times and synthesize findings with citations")
+        else:
+            st.info("⚡ Direct AI generation - fast and efficient")
+    else:
+        st.markdown("Let AI generate content for your request")
     
     # Check if AI is currently processing for this step
     ai_processing_key = f"ai_processing_{step_name}"
@@ -256,7 +284,7 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
         # Show processing state instead of button
         st.info("🧠 AI is generating content... Please wait.")
         
-        with st.spinner("🧠 Generating content..."):
+        with st.spinner("🧠 Generating content..." if not use_agent else "🔍 AI is researching with search tools..."):
             try:
                 # Get the meta prompt and module prompt from Google Docs
                 from utils.google_docs_fetcher import get_prompt_content
@@ -265,6 +293,7 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                 
                 if not meta_prompt or not module_prompt:
                     st.error("Could not retrieve AI prompts. Please check your Google Docs access.")
+                    st.session_state[ai_processing_key] = False
                     return False, None, None, None
                 
                 # Check if this is a PRD step and include PRD meta prompt
@@ -272,6 +301,7 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                     prd_meta_prompt = get_prompt_content('prd_meta_prompt')
                     if not prd_meta_prompt:
                         st.error("Could not retrieve PRD meta prompt. Please check your Google Docs access.")
+                        st.session_state[ai_processing_key] = False
                         return False, None, None, None
                     # Three-layer prompt structure for PRD steps
                     combined_prompt = f"{meta_prompt}\n\n{prd_meta_prompt}\n\n{module_prompt}"
@@ -279,15 +309,30 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                     # Two-layer prompt structure for non-PRD steps
                     combined_prompt = f"{meta_prompt}\n\n{module_prompt}"
                 
-                # Generate AI response with context data if provided
-                if context_data:
-                    research = generate_ai_response(combined_prompt, context_data, step_name)
+                # Prepare context
+                if not context_data:
+                    context_data = {'topic': topic}
+                
+                # Choose generation method: Agent for research stages, direct LLM for others
+                if use_agent:
+                    # Use research agent with search capabilities
+                    from AI.research_agent import run_research_agent
+                    model_name = st.session_state.get('selected_ai_model', 'gpt-5')
+                    
+                    research = run_research_agent(
+                        combined_prompt=combined_prompt,
+                        context=context_data,
+                        model_name=model_name,
+                        step_name=step_name
+                    )
                 else:
-                    research = generate_ai_response(combined_prompt, {'topic': topic}, step_name)
+                    # Use direct LLM generation (existing behavior)
+                    research = generate_ai_response(combined_prompt, context_data, step_name)
                 
                 if research:
                     # Create Google Doc with the research
-                    doc_title = f"{step_name.title()} - {topic} (AI Generated)"
+                    method_label = "Agent Research" if use_agent else "AI Generated"
+                    doc_title = f"{step_name.title()} - {topic} ({method_label})"
                     doc_content = research
                     
                     doc_id = create_google_doc(doc_title, doc_content, session_folder_id)
@@ -301,17 +346,19 @@ def handle_ai_generation(topic, session_folder_id, session_id, step_name, prompt
                         f'{step_name}_research_completed',
                         {
                             'topic': topic,
-                            'method': 'ai_generated',
+                            'method': 'agent_research' if use_agent else 'ai_generated',
                             'prompt_type': prompt_type,
                             'doc_id': doc_id,
-                            'content_length': len(research)
+                            'content_length': len(research),
+                            'used_agent': use_agent
                         }
                     )
                     
                     # Clear processing state on success
                     st.session_state[ai_processing_key] = False
-                    st.success("✅ AI research generated and saved!")
-                    return True, research, f'ai_generated:{prompt_type}', doc_id
+                    success_msg = "✅ Agent research completed and saved!" if use_agent else "✅ AI research generated and saved!"
+                    st.success(success_msg)
+                    return True, research, f'{"agent_research" if use_agent else "ai_generated"}:{prompt_type}', doc_id
                 else:
                     # Clear processing state on failure
                     st.session_state[ai_processing_key] = False

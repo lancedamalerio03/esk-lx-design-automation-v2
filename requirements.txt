@@ -4,6 +4,21 @@ streamlit
 # OpenAI API
 openai
 
+# LangChain - Core
+langchain
+langchain-openai
+langchain-google-genai>=0.0.11
+langchain-anthropic
+langchain-perplexity
+langchain-community
+langsmith
+
+# HTTP Requests (for Perplexity API)
+requests
+
+# Google AI - Fix version conflicts
+google-generativeai>=0.8.0
+
 # Google APIs - UPDATED for OAuth
 google-api-python-client
 google-auth

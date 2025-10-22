@@ -176,29 +176,98 @@ def render_sidebar():
         
         # Model Selection
         st.markdown("### 🤖 AI Model")
-        available_models = [
-            "gpt-5-pro", "gpt-5", "gpt-5-mini", "gpt-5-nano",
-            "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", 
-            "gpt-4o", "gpt-4o-mini",
-            "o3", "o3-mini"
-        ]
         
-        # Get previous model to detect changes
+        # Define models by provider
+        models_by_provider = {
+            "OpenAI": [
+                "gpt-5-pro", "gpt-5", "gpt-5-mini", "gpt-5-nano",
+                "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", 
+                "gpt-4o", "gpt-4o-mini",
+                "o3", "o3-mini"
+            ],
+            "Gemini (Google)": [
+                "gemini-2.5-flash",
+                "gemini-2.0-flash-exp",
+                "gemini-1.5-flash", 
+                "gemini-1.5-pro"
+            ],
+            "Claude (Anthropic)": [
+                "claude-sonnet-4.5",
+                "claude-sonnet-4",
+                "claude-3.7-sonnet",
+                "claude-3.5-sonnet",
+                "claude-3-opus",
+                "claude-3-haiku"
+            ],
+            "Perplexity": [
+                "perplexity-sonar-reasoning-pro",
+                "perplexity-sonar-reasoning"
+            ]
+        }
+        
+        # Get current selections or defaults
+        current_model = st.session_state.get('selected_ai_model', 'gpt-5')
         previous_model = st.session_state.get('previous_ai_model', 'gpt-5')
         
-        selected_model = st.selectbox(
-            "Choose AI Model:",
-            options=available_models,
-            index=0,  # Default to gpt-5
-            key="selected_ai_model",
-            disabled=False,  # Strict dropdown - no typing allowed
-            help="Select from available OpenAI models. Model applies to next AI generation."
+        # Determine current provider based on current model
+        current_provider = None
+        for provider, models in models_by_provider.items():
+            if current_model in models:
+                current_provider = provider
+                break
+        if not current_provider:
+            current_provider = "OpenAI"  # Default
+        
+        # Provider selection dropdown
+        provider_list = list(models_by_provider.keys())
+        try:
+            provider_index = provider_list.index(current_provider)
+        except ValueError:
+            provider_index = 0
+        
+        selected_provider = st.selectbox(
+            "Model Provider:",
+            options=provider_list,
+            index=provider_index,
+            key="selected_model_provider",
+            help="Choose the AI provider. Gemini models are free for testing!"
         )
         
-        # Check if model changed and show notification
+        # Model selection dropdown (depends on provider)
+        available_models = models_by_provider[selected_provider]
+        
+        # Find index of current model in the provider's list
+        try:
+            model_index = available_models.index(current_model)
+        except ValueError:
+            model_index = 0  # Default to first model of provider
+        
+        selected_model = st.selectbox(
+            "Model:",
+            options=available_models,
+            index=model_index,
+            key="selected_ai_model_selector",
+            help="Select the specific model. LangChain + LangSmith enabled."
+        )
+        
+        # Store the actual selected model
+        st.session_state.selected_ai_model = selected_model
+        
+        # Check if model changed and show notification with provider info
         if selected_model != previous_model:
-            st.success(f"🔄 Model changed to **{selected_model}**")
+            try:
+                from AI.langchain_llm import get_model_info
+                model_info = get_model_info(selected_model)
+                provider = model_info.get('provider', 'unknown').upper()
+                is_free = model_info.get('is_free', False)
+                free_badge = " 🆓" if is_free else ""
+                st.success(f"🔄 Model changed to **{selected_model}** ({provider}){free_badge}")
+            except:
+                st.success(f"🔄 Model changed to **{selected_model}**")
             st.session_state.previous_ai_model = selected_model
+        
+        # Show LangChain status
+        st.caption("✅ LangChain + LangSmith Active")
         
         st.markdown("---")
         
