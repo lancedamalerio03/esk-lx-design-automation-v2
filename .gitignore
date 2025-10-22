@@ -116,3 +116,9 @@ downloads/
 
 service_account.json
 *.json
+
+# Local documentation and tests (not for GitHub)
+Instructions/
+tests/
+Prompts/
+Sample Outputs/
