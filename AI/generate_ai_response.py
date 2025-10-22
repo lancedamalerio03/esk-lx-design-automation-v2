@@ -73,9 +73,9 @@ class TokenTracker:
             "gemini-1.5-flash":     {"input_per_1m": 0.00, "output_per_1m": 0.00},  # Free (up to limits)
             "gemini-1.5-pro":       {"input_per_1m": 1.25, "output_per_1m": 5.00},
             
-            # Claude Models (Anthropic)
+            # Claude Models (Anthropic) - Claude 4.5 generation
             "claude-sonnet-4.5":    {"input_per_1m": 3.00, "output_per_1m": 15.00},
-            "claude-haiku-4.5":     {"input_per_1m": 0.25, "output_per_1m": 1.25},
+            "claude-haiku-4.5":     {"input_per_1m": 0.80, "output_per_1m": 4.00},
             
             # Perplexity Models
             "perplexity-sonar-reasoning-pro": {"input_per_1m": 1.00, "output_per_1m": 5.00},

@@ -38,9 +38,9 @@ MODEL_MAPPING = {
     "gemini-1.5-flash": ("google_genai", "gemini-1.5-flash"),
     "gemini-1.5-pro": ("google_genai", "gemini-1.5-pro"),
     
-    # Claude Models (Anthropic)
-    "claude-sonnet-4.5": ("anthropic", "claude-sonnet-4.5"),
-    "claude-haiku-4.5": ("anthropic", "claude-haiku-4.5"),
+    # Claude Models (Anthropic) - Claude 4.5 generation
+    "claude-sonnet-4.5": ("anthropic", "claude-sonnet-4-5"),
+    "claude-haiku-4.5": ("anthropic", "claude-haiku-4-5"),
     
     # Perplexity Reasoning Models (different from search tool)
     "perplexity-sonar-reasoning-pro": ("perplexity", "sonar-pro"),
