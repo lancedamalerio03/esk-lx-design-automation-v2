@@ -14,6 +14,8 @@ GOOGLE_CLIENT_SECRET = google_auth_client_secret
 REDIRECT_URI = google_auth_redirect_uri
 
 SCOPES = [
+    'openid',  # Required when using userinfo scopes
+    'https://www.googleapis.com/auth/userinfo.email',  # For getting user email
     'https://www.googleapis.com/auth/drive',
     'https://www.googleapis.com/auth/documents',
     'https://www.googleapis.com/auth/spreadsheets'
@@ -98,6 +100,38 @@ def get_docs_service():
     if credentials:
         return build('docs', 'v1', credentials=credentials)
     return None
+
+def get_user_email():
+    """Get the authenticated user's email address from OAuth2 userinfo endpoint.
+
+    This uses the userinfo endpoint instead of People API, so no additional API needs to be enabled.
+    """
+    if 'user_email' not in st.session_state:
+        try:
+            credentials = get_user_credentials()
+            if credentials:
+                # Use OAuth2 userinfo endpoint (no People API needed)
+                import requests
+                headers = {'Authorization': f'Bearer {credentials.token}'}
+                response = requests.get(
+                    'https://www.googleapis.com/oauth2/v2/userinfo',
+                    headers=headers,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    user_info = response.json()
+                    st.session_state.user_email = user_info.get('email', 'unknown')
+                    print(f"Successfully retrieved user email: {st.session_state.user_email}")
+                else:
+                    print(f"Failed to get user info: {response.status_code}")
+                    st.session_state.user_email = 'unknown'
+            else:
+                st.session_state.user_email = 'unknown'
+        except Exception as e:
+            print(f"Error getting user email: {e}")
+            st.session_state.user_email = 'unknown'
+
+    return st.session_state.user_email
 
 def get_sheets_service():
     """Get authenticated Google Sheets service."""

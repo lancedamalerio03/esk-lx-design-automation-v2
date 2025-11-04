@@ -2,15 +2,18 @@ import streamlit as st
 
 def sprint_backlog_module():
     """Sprint Backlog Module - Step 5 of the workflow (Coming Soon)"""
-    
+
     st.markdown("## 🚀 Step 5: Sprint Backlog Generation")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     prd_data = st.session_state.session_data.get('prd_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous final PRD
     final_prd = prd_data.get('final_prd_output', '')

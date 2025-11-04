@@ -24,13 +24,16 @@ def model_deliverable_module():
 def step_model_research(model_data):
     """Step 3A: Model Research"""
     st.markdown("## 🔬 Step 3A: Model Research")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     client_data = st.session_state.session_data.get('client_conversation_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best research results:** Perplexity Sonar Reasoning Pro")
     
     # Show previous client info
     client_info = client_data.get('info_output', '')
@@ -110,13 +113,16 @@ def step_model_research(model_data):
 def step_model_deliverable(model_data):
     """Step 3B: Model Deliverable Creation"""
     st.markdown("## 🎯 Step 3B: Model Deliverable Creation")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     client_data = st.session_state.session_data.get('client_conversation_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous model research
     research_content = model_data.get('research_output', '')

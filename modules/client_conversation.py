@@ -24,12 +24,15 @@ def client_conversation_module():
 def step_client_transcript(client_data):
     """Step 2A: Client Transcript Generation"""
     st.markdown("## 📝 Step 2A: Client Conversation Transcript")
-    
+
     # Show context from previous step
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     if topic_data.get('research_output'):
         with st.expander("📚 Previous Research (for context)", expanded=False):
@@ -107,12 +110,15 @@ def step_client_transcript(client_data):
 def step_client_info(client_data):
     """Step 2B: Client Information Extraction"""
     st.markdown("## 📊 Step 2B: Client Information Extraction")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous transcript
     transcript_content = client_data.get('transcript_output', '')

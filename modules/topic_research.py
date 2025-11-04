@@ -35,15 +35,35 @@ def step_topic_entry(topic_data):
         topic_data['welcome_shown'] = True
     
     st.markdown("---")
-    
+
     # Get existing topic if any
     current_topic = topic_data.get('user_topic', '')
-    
+
+    # Instructions for topic entry
+    st.markdown("""
+    ### How to formulate your topic
+
+    Enter your topic or area of interest and you can follow this formula as a guide to improve your prompt results:
+
+    **[Topic/Outcome you want to explore] + [Industry/Company/Context] + [Location]**
+
+    *Optional: you can include information on who your target audience is to add more specificity!*
+
+    **Examples:**
+    - AI agents for banking analytics in the Philippines
+    - Effective internal communication in the age of AI for globally remote workplaces
+    - Modern product management for global banking
+    - Introducing AI to Human Resources practice in the Philippines
+    - Implementing ethical AI practices within secondary education in the Philippines for high school students
+    """)
+
+    st.markdown("---")
+
     # Topic input
     topic = st.text_area(
         "Enter your topic or area of interest:",
         height=150,
-        placeholder="e.g. AI agents for banking analytics...",
+        placeholder="e.g. AI agents for banking analytics in the Philippines",
         value=current_topic,
         key="topic_input_key"
     )
@@ -70,9 +90,12 @@ def step_topic_entry(topic_data):
 def step_research_options(topic_data):
     """Step 2: Research Options"""
     st.markdown("## 📚 Topic Research")
-    
+
     topic = topic_data.get('user_topic', 'Unknown topic')
     st.info(f"**Your Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best research results:** Perplexity Sonar Reasoning Pro")
     
     # Handle mock data if in developer mode
     if st.session_state.get('developer_mode', False):

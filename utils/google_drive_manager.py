@@ -1,5 +1,5 @@
 from googleapiclient.discovery import build
-from .google_auth import get_drive_service, get_docs_service, get_user_credentials
+from .google_auth import get_drive_service, get_docs_service, get_user_credentials, get_user_email
 from keys.config import lx_design_folder, last_created_folder_name
 import datetime
 import re
@@ -14,65 +14,87 @@ def get_outputs_folder_id():
     return None
 
 def get_last_created_folder_id():
-    """Find or create the LAST CREATED folder in OUTPUTS"""
+    """Find or create a user-specific LAST CREATED folder in OUTPUTS
+
+    Creates folders named like: "LAST CREATED - user@example.com"
+    This prevents permission issues when multiple users share the same OUTPUTS folder.
+    """
     drive_service = get_drive_service()
     if not drive_service:
         return None
-        
+
     outputs_folder_id = get_outputs_folder_id()
     if not outputs_folder_id:
         return None
-    
+
+    # Get user email to create user-specific folder
+    user_email = get_user_email()
+    if not user_email or user_email == 'unknown':
+        print("Warning: Could not get user email, using default LAST CREATED folder")
+        user_specific_folder_name = last_created_folder_name
+    else:
+        user_specific_folder_name = f"{last_created_folder_name} - {user_email}"
+
     try:
-        # Search for LAST CREATED folder in OUTPUTS folder
+        # Search for user-specific LAST CREATED folder in OUTPUTS folder
         results = drive_service.files().list(
-            q=f"name='{last_created_folder_name}' and '{outputs_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+            q=f"name='{user_specific_folder_name}' and '{outputs_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
             fields='files(id, name)'
         ).execute()
-        
+
         folders = results.get('files', [])
         if folders:
             return folders[0]['id']
-        
-        # Create LAST CREATED folder if it doesn't exist
+
+        # Create user-specific LAST CREATED folder if it doesn't exist
         folder_metadata = {
-            'name': last_created_folder_name,
+            'name': user_specific_folder_name,
             'mimeType': 'application/vnd.google-apps.folder',
             'parents': [outputs_folder_id]
         }
-        
+
         folder = drive_service.files().create(body=folder_metadata).execute()
+        print(f"Created user-specific LAST CREATED folder: {user_specific_folder_name}")
         return folder.get('id')
-        
+
     except Exception as e:
         print(f"Error finding/creating LAST CREATED folder: {e}")
         return None
 
 def clear_last_created_folder():
-    """Clear all files from the LAST CREATED folder"""
+    """Clear all files from the user's LAST CREATED folder
+
+    Since each user has their own folder, they own all files in it and can delete them.
+    """
     drive_service = get_drive_service()
     if not drive_service:
         return False
-    
+
     last_created_folder_id = get_last_created_folder_id()
     if not last_created_folder_id:
         return False
-    
+
     try:
-        # Get all files in LAST CREATED folder
+        # Get all files in user's LAST CREATED folder
         results = drive_service.files().list(
             q=f"'{last_created_folder_id}' in parents and trashed=false",
             fields='files(id, name)'
         ).execute()
-        
+
         files = results.get('files', [])
-        
-        # Delete all files
+
+        # Delete all files (user owns all files in their own folder)
+        deleted_count = 0
         for file in files:
-            drive_service.files().delete(fileId=file['id']).execute()
-        
+            try:
+                drive_service.files().delete(fileId=file['id']).execute()
+                deleted_count += 1
+            except Exception as e:
+                print(f"Warning: Could not delete file '{file.get('name')}': {e}")
+
+        print(f"Cleared {deleted_count} file(s) from LAST CREATED folder")
         return True
-        
+
     except Exception as e:
         print(f"Error clearing LAST CREATED folder: {e}")
         return False

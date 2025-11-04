@@ -2,8 +2,6 @@ import streamlit as st
 import json
 from utils.input_type_handler import load_mock_research, render_research_input_options
 from utils.google_sheets_logger import log_session_data
-from utils.google_drive_manager import copy_template_and_fill_placeholders, format_prd_data_for_template
-from keys.config import prd_template
 
 def prd_module():
     """PRD Module - Step 4 of the workflow"""
@@ -39,13 +37,16 @@ def prd_module():
 def step_executive_summary(prd_data):
     """Step 4A: Executive Summary"""
     st.markdown("## 📋 Step 4A: PRD Executive Summary")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     client_data = st.session_state.session_data.get('client_conversation_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous client info
     client_info = client_data.get('info_output', '')
@@ -127,12 +128,15 @@ def step_executive_summary(prd_data):
 def step_problem_statement(prd_data):
     """Step 4B: Problem Statement"""
     st.markdown("## 🎯 Step 4B: PRD Problem Statement")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous executive summary
     executive_summary = prd_data.get('executive_summary_output', '')
@@ -224,12 +228,15 @@ def step_problem_statement(prd_data):
 def step_goals_and_success(prd_data):
     """Step 4C: Goals and Success Metrics"""
     st.markdown("## 🎯 Step 4C: Goals and Success Metrics")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous problem statement
     problem_statement = prd_data.get('problem_statement_output', '')
@@ -316,12 +323,15 @@ def step_goals_and_success(prd_data):
 def step_roles_and_responsibilities(prd_data):
     """Step 4D: Roles and Responsibilities"""
     st.markdown("## 👥 Step 4D: Roles and Responsibilities")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous goals and success
     goals_and_success = prd_data.get('goals_and_success_output', '')
@@ -409,12 +419,15 @@ def step_roles_and_responsibilities(prd_data):
 def step_constraints_and_assumptions(prd_data):
     """Step 4E: Constraints and Assumptions"""
     st.markdown("## ⚠️ Step 4E: Constraints and Assumptions")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous roles and responsibilities
     roles_and_responsibilities = prd_data.get('roles_and_responsibilities_output', '')
@@ -503,12 +516,15 @@ def step_constraints_and_assumptions(prd_data):
 def step_evaluation_criteria(prd_data):
     """Step 4F: Evaluation Criteria"""
     st.markdown("## 📊 Step 4F: Evaluation Criteria")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous constraints and assumptions
     constraints_and_assumptions = prd_data.get('constraints_and_assumptions_output', '')
@@ -598,12 +614,15 @@ def step_evaluation_criteria(prd_data):
 def step_risk_and_mitigations(prd_data):
     """Step 4G: Risk and Mitigations"""
     st.markdown("## 🛡️ Step 4G: Risk and Mitigations")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous evaluation criteria
     evaluation_criteria = prd_data.get('evaluation_criteria_output', '')
@@ -694,12 +713,15 @@ def step_risk_and_mitigations(prd_data):
 def step_prd_generator(prd_data):
     """Step 4H: Final PRD Generation"""
     st.markdown("## 📄 Step 4H: Final PRD Generation")
-    
+
     # Show context from previous steps
     topic_data = st.session_state.session_data.get('topic_research_data', {})
     topic = topic_data.get('user_topic', 'Unknown topic')
-    
+
     st.info(f"**Topic:** {topic}")
+
+    # Model recommendation
+    st.info("💡 **Recommended model for best generation results:** ChatGPT-5")
     
     # Show previous risk and mitigations
     risk_and_mitigations = prd_data.get('risk_and_mitigations_output', '')
@@ -799,103 +821,28 @@ def step_prd_generator(prd_data):
     )
     
     if success and prd_content:
-        # Handle the PRD content and fill template based on the method
-        if method_used == 'pasted_content':
-            # User pasted PRD content - try to parse as JSON or use session data
-            try:
-                if prd_content.strip().startswith('{'):
-                    # Content looks like JSON
+        # Save the raw JSON/content directly without template processing
+        with st.spinner("Saving PRD JSON data..."):
+            from utils.google_drive_manager import create_google_doc, get_document_url
+
+            # Format the content as JSON for saving
+            # If AI generated JSON, use it directly; otherwise wrap the content
+            if prd_content.strip().startswith('{'):
+                try:
+                    # Parse and pretty-print JSON
                     prd_json = json.loads(prd_content)
-                else:
-                    # Content is text - use session data and add pasted content as context
-                    prd_json = create_prd_json_from_session_data(prd_data, topic, context_data)
-                    prd_json['Executive_Summary']['Executive_Summary'] = {'Context_and_Identity': [prd_content]}
-            except json.JSONDecodeError:
-                # If JSON parsing fails, use session data
-                prd_json = create_prd_json_from_session_data(prd_data, topic, context_data)
-                prd_json['Executive_Summary']['Executive_Summary'] = {'Context_and_Identity': [prd_content]}
-        
-        elif method_used.startswith('pdf_upload'):
-            # User uploaded PDF - use PDF content to enhance session data  
-            prd_json = create_prd_json_from_session_data(prd_data, topic, context_data)
-            prd_json['Executive_Summary']['Executive_Summary'] = {'Context_and_Identity': [prd_content]}
-        
-        elif method_used.startswith('ai_generated'):
-            # AI generated content - should be complete PRD, use as-is
-            try:
-                if prd_content.strip().startswith('{'):
-                    # AI content is JSON - parse and normalize the structure
-                    ai_json = json.loads(prd_content)
-                    # Convert AI JSON structure to our expected format
-                    prd_json = {
-                        "title": ai_json.get("Document_Title", f"PRD - {topic}"),
-                        "Executive_Summary": ai_json.get("Executive_Summary", {}),
-                        "Problem_Statement": ai_json.get("Problem_Statement", {}),
-                        "Goals_and_Success_Metrics": ai_json.get("Goals_and_Success_Metrics", {}),
-                        "Roles_and_Responsibilities": ai_json.get("Roles_and_Responsibilities", {}),
-                        "Constraints_and_Assumptions": ai_json.get("Constraints_and_Assumptions", {}),
-                        "Evaluation_Criteria": ai_json.get("Evaluation_Criteria", {}),
-                        "Risks_and_Mitigations": ai_json.get("Risks_and_Mitigations", {})
-                    }
-                else:
-                    # AI content is text - create basic structure
-                    prd_json = {
-                        "title": f"PRD - {topic}",
-                        "Executive_Summary": {
-                            "Topic": topic,
-                            "Executive_Summary": {"Context_and_Identity": [prd_content]}
-                        }
-                    }
-            except json.JSONDecodeError:
-                # If JSON parsing fails, treat as executive summary content
-                prd_json = {
-                    "title": f"PRD - {topic}",
-                    "Executive_Summary": {
-                        "Topic": topic,
-                        "Executive_Summary": {"Context_and_Identity": [prd_content]}
-                    }
-                }
-        
-        else:
-            # Fallback - use session data
-            prd_json = create_prd_json_from_session_data(prd_data, topic, context_data)
-        
-        # First, save the raw JSON data to a document for debugging
-        with st.spinner("Saving raw JSON data..."):
-            from utils.google_drive_manager import create_google_doc
-            
-            raw_json_content = json.dumps(prd_json, indent=2, ensure_ascii=False)
-            raw_json_doc_title = f"PRD JSON Raw Data - {topic}"
-            raw_json_doc_id = create_google_doc(raw_json_doc_title, raw_json_content, st.session_state.session_folder_id)
-            
-            if raw_json_doc_id:
-                st.success(f"✅ Raw JSON data saved!")
-                from utils.google_drive_manager import get_document_url
-                raw_json_doc_url = get_document_url(raw_json_doc_id)
-                st.markdown(f"📄 [View Raw JSON Data]({raw_json_doc_url})")
-        
-        # Now generate the final PRD from template
-        with st.spinner("Creating PRD from template..."):
-            # Also save the placeholder mappings for debugging
-            from utils.google_drive_manager import format_prd_data_for_template
-            placeholders = format_prd_data_for_template(prd_json, topic)
-            
-            placeholders_content = "PLACEHOLDER MAPPINGS FOR DEBUGGING:\n\n"
-            for placeholder, content in placeholders.items():
-                placeholders_content += f"PLACEHOLDER: {placeholder}\n"
-                placeholders_content += f"CONTENT: {content}\n"
-                placeholders_content += "-" * 50 + "\n\n"
-            
-            placeholders_doc_title = f"PRD Placeholder Mappings - {topic}"
-            placeholders_doc_id = create_google_doc(placeholders_doc_title, placeholders_content, st.session_state.session_folder_id)
-            
-            if placeholders_doc_id:
-                st.success(f"✅ Placeholder mappings saved!")
-                placeholders_doc_url = get_document_url(placeholders_doc_id)
-                st.markdown(f"📄 [View Placeholder Mappings]({placeholders_doc_url})")
-            
-            final_doc_id = generate_prd_from_template(prd_json, topic, st.session_state.session_folder_id)
-            
+                    final_content = json.dumps(prd_json, indent=2, ensure_ascii=False)
+                except json.JSONDecodeError:
+                    # If parsing fails, save as-is
+                    final_content = prd_content
+            else:
+                # Plain text content - save as-is
+                final_content = prd_content
+
+            # Create the final PRD document
+            final_doc_title = f"PRD - {topic}"
+            final_doc_id = create_google_doc(final_doc_title, final_content, st.session_state.session_folder_id)
+
             if final_doc_id:
                 # Clean up temporary document if it was created by input handler
                 if doc_id and doc_id != final_doc_id:
@@ -906,38 +853,37 @@ def step_prd_generator(prd_data):
                             drive_service.files().delete(fileId=doc_id).execute()
                     except:
                         pass  # Ignore cleanup errors
-                
+
                 # Save final PRD data to session
                 prd_data['final_prd_output'] = prd_content
-                prd_data['final_prd_method_used'] = f"{method_used}_template"
+                prd_data['final_prd_method_used'] = method_used
                 prd_data['final_prd_doc_id'] = final_doc_id
-                
-                st.success("🎉 Complete PRD Generated from Template!")
+
+                st.success("🎉 PRD Generated Successfully!")
                 st.markdown("### ✅ PRD Generation Complete!")
-                st.markdown("Your comprehensive Product Requirements Document has been created from the template and saved.")
-                
+                st.markdown("Your comprehensive Product Requirements Document has been saved.")
+
                 # Show document link
-                from utils.google_drive_manager import get_document_url
                 doc_url = get_document_url(final_doc_id)
                 st.markdown(f"📄 [Open PRD Document]({doc_url})")
-                
+
                 # Log completion
                 log_session_data(
                     st.session_state.session_id,
                     'final_prd_completed',
                     {
                         'topic': topic,
-                        'method': f"{method_used}_template",
+                        'method': method_used,
                         'doc_id': final_doc_id,
                         'content_length': len(prd_content)
                     }
                 )
-                
+
                 # Move to next step
                 st.session_state.current_step = 5
-                
+
             else:
-                st.error("❌ Failed to generate PRD from template. Please check your template configuration.")
+                st.error("❌ Failed to save PRD document. Please try again.")
     
     # Navigation buttons
     st.markdown("---")
@@ -945,122 +891,3 @@ def step_prd_generator(prd_data):
         prd_data['current_substep'] = 'risk_and_mitigations'
         st.rerun()
 
-def create_prd_json_from_session_data(prd_data, topic, context_data):
-    """Create PRD JSON structure from session data that matches the expected format"""
-    
-    def parse_json_or_text(content):
-        """Parse content - if it's JSON, use it directly; if text, return as is"""
-        if not content:
-            return {}
-        
-        try:
-            # Try to parse as JSON first
-            if isinstance(content, str) and content.strip().startswith('{'):
-                return json.loads(content)
-            elif isinstance(content, dict):
-                return content
-            else:
-                # If it's plain text, return as is for now
-                return {"content": content}
-        except (json.JSONDecodeError, TypeError):
-            # If JSON parsing fails, return as text content
-            return {"content": content}
-    
-    # Parse each section's output data
-    exec_summary_data = parse_json_or_text(prd_data.get('executive_summary_output', ''))
-    problem_data = parse_json_or_text(prd_data.get('problem_statement_output', ''))
-    goals_data = parse_json_or_text(prd_data.get('goals_and_success_output', ''))
-    roles_data = parse_json_or_text(prd_data.get('roles_and_responsibilities_output', ''))
-    constraints_data = parse_json_or_text(prd_data.get('constraints_and_assumptions_output', ''))
-    evaluation_data = parse_json_or_text(prd_data.get('evaluation_criteria_output', ''))
-    risks_data = parse_json_or_text(prd_data.get('risk_and_mitigations_output', ''))
-    
-    # Build the complete PRD JSON structure using actual data
-    prd_json = {
-        "title": f"PRD - {topic}",
-        "Executive_Summary": {
-            "Topic": topic,
-            "Executive_Summary": exec_summary_data.get('Executive_Summary', exec_summary_data)
-        },
-        "Problem_Statement": {
-            "Topic": topic,
-            "Problem_Statement": problem_data.get('Problem_Statement', problem_data)
-        },
-        "Goals_and_Success_Metrics": {
-            "Topic": topic,
-            "Goals_and_Success_Metrics": goals_data.get('Goals_and_Success_Metrics', goals_data)
-        },
-        "Roles_and_Responsibilities": {
-            "Topic": topic,
-            "Roles_and_Responsibilities": roles_data.get('Roles_and_Responsibilities', roles_data)
-        },
-        "Constraints_and_Assumptions": {
-            "Topic": topic,
-            "Constraints_and_Assumptions": constraints_data.get('Constraints_and_Assumptions', constraints_data)
-        },
-        "Evaluation_Criteria": {
-            "Topic": topic,
-            "Evaluation_Criteria": evaluation_data.get('Evaluation_Criteria', evaluation_data)
-        },
-        "Risks_and_Mitigations": {
-            "Topic": topic,
-            "Risks_and_Mitigations": risks_data.get('Risks_and_Mitigations', risks_data)
-        }
-    }
-    
-    return prd_json
-
-def create_prd_json_from_ai_content(ai_content, topic, context_data, prd_data):
-    """Create PRD JSON structure from AI-generated content and existing session data"""
-    
-    # Use the existing session data but supplement with AI content where available
-    # This creates a more complete JSON structure
-    prd_json = create_prd_json_from_session_data(prd_data, topic, context_data)
-    
-    # If AI content is structured JSON, try to parse and merge it
-    try:
-        if ai_content.strip().startswith('{') and ai_content.strip().endswith('}'):
-            ai_json = json.loads(ai_content)
-            # Merge AI-generated structure with session data structure
-            # Prioritize AI content where available
-            for section, content in ai_json.items():
-                if section in prd_json:
-                    prd_json[section] = content
-        else:
-            # AI content is text - use it to enhance the Executive Summary
-            prd_json['Executive_Summary']['Executive_Summary']['Context_and_Identity'] = [ai_content]
-            
-    except (json.JSONDecodeError, KeyError):
-        # If parsing fails, treat as general content for Executive Summary
-        prd_json['Executive_Summary']['Executive_Summary']['Context_and_Identity'] = [ai_content]
-    
-    return prd_json
-
-def generate_prd_from_template(prd_json, topic, folder_id):
-    """Generate PRD document from template using the structured JSON data"""
-    
-    if not prd_template:
-        st.error("❌ PRD template ID not configured. Please add PRD_TEMPLATE_ID to your secrets.")
-        return None
-    
-    try:
-        # Convert JSON to placeholders
-        placeholders = format_prd_data_for_template(prd_json, topic)
-        
-        # Create document title
-        doc_title = f"PRD - {topic} - Generated"
-        
-        # Copy template and fill placeholders
-        doc_id = copy_template_and_fill_placeholders(
-            prd_template,
-            doc_title,
-            placeholders,
-            folder_id
-        )
-        
-        return doc_id
-        
-    except Exception as e:
-        st.error(f"❌ Error generating PRD from template: {str(e)}")
-        print(f"Error in generate_prd_from_template: {e}")
-        return None
